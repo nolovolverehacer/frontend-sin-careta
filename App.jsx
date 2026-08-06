@@ -4,8 +4,7 @@ import Confetti from 'react-confetti';
 import html2canvas from 'html2canvas'; // 🚀 LIBRERÍA PARA FOTOS DE INSTAGRAM
 import './App.css';
 
-const socket = io('[https://sin-careta-backend.onrender.com](https://sin-careta-backend.onrender.com)');
-
+const socket = io('https://sin-careta-backend.onrender.com');
 // 🚀 ZOOLÓGICO DE AVATARES (24 opciones)
 const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈','🐖','🐅','🦥','🦦','🦨','🦇','🦩','🦅','🦈','🐊','🦖','🦄','🐸','🐼','🐨'];
 
