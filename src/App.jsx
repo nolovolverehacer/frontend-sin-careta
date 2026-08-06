@@ -10,7 +10,8 @@ const socket = io('https://sin-careta-backend.onrender.com');
 const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈','🐖','🐅','🦥','🦦','🦨','🦇','🦩','🦅','🦈','🐊','🦖','🦄','🐸','🐼','🐨'];
 
 function App() {
-  const [pantalla, setPantalla] = useState('INICIO'); 
+  const [pantalla, setPantalla] = useState('INICIO');
+  const [cargando, setCargando] = useState(false);
   const [nombre, setNombre] = useState('');
   const [codigoSala, setCodigoSala] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -104,7 +105,19 @@ function App() {
       if (!miId) setMiId(socket.id);
     });
 
-    socket.on('error_conexion', (data) => { alert(data.mensaje); });
+    socket.on('error_conexion', (data) => { 
+      alert(data.mensaje); 
+      setCargando(false); // Libera el botón para intentar de nuevo
+    });
+    
+    // Y ya que estamos, aseguramos que se apague cuando entra a la sala
+    socket.on('sala_creada', (data) => {
+      setMiSala(data.codigoSala);
+      setJugadores(data.jugadores);
+      setMiId(socket.id);
+      setCargando(false); 
+      setPantalla('LOBBY');
+    });
 
     socket.on('pantalla_reglas', () => { setPantalla('REGLAS'); }); 
 
@@ -221,6 +234,7 @@ function App() {
 
   const crearSala = () => {
     if (!nombre.trim()) return alert('¡Ponete un nombre, careta!');
+    setCargando(true);
     reproducirSonido('click');
     socket.emit('crear_sala', { nombreUsuario: nombre, avatar: avatarElegido });
   };
@@ -228,9 +242,10 @@ function App() {
   const unirseSala = () => {
     if (!nombre.trim()) return alert('¡Ponete un nombre, careta!');
     if (!codigoSala.trim()) return alert('Ingresá el código de la sala');
+    setCargando(true);
     reproducirSonido('click');
     socket.emit('unirse_sala', { codigoSala: codigoSala.trim().toUpperCase(), nombreUsuario: nombre, avatar: avatarElegido });
-    setMiSala(codigoSala.toUpperCase());
+    setMiSala(codigoSala.trim().toUpperCase());
   };
 
   const prepararJuego = () => {
@@ -330,12 +345,14 @@ function App() {
           </div>
 
           <input style={estilos.input} placeholder="Tu apodo" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={12} />
-          <button style={estilos.botonPrincipal} onClick={crearSala}>CREAR SALA</button>
+         <button style={{...estilos.botonPrincipal, opacity: cargando ? 0.7 : 1}} onClick={crearSala} disabled={cargando}>
           
           <div style={{ margin: '15px 0', width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)' }}></div>
           
           <input style={estilos.input} placeholder="CÓDIGO (Ej: RATA-123)" value={codigoSala} onChange={(e) => setCodigoSala(e.target.value)} maxLength={8} />
-          <button style={estilos.botonSecundario} onClick={unirseSala}>UNIRSE</button>
+          <button style={{...estilos.botonSecundario, opacity: cargando ? 0.7 : 1}} onClick={unirseSala} disabled={cargando}>
+            {cargando ? 'CONECTANDO...' : 'UNIRSE'}
+          </button>
         </div>
       )}
 
