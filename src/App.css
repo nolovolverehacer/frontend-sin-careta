@@ -109,3 +109,53 @@ body {
   font-weight: 800;
   letter-spacing: 1px;
 }
+/* =========================================
+   🪄 ANIMACIONES AVANZADAS PARA EL LOBBY
+   ========================================= */
+
+/* 1. Resplandor pulsante para el código de la sala */
+@keyframes pulsoNeon {
+  0% { text-shadow: 0 0 5px rgba(0, 255, 163, 0.4), 0 0 10px rgba(0, 255, 163, 0.2); }
+  50% { text-shadow: 0 0 15px rgba(0, 255, 163, 0.9), 0 0 25px rgba(0, 255, 163, 0.6); transform: scale(1.02); }
+  100% { text-shadow: 0 0 5px rgba(0, 255, 163, 0.4), 0 0 10px rgba(0, 255, 163, 0.2); }
+}
+.texto-neon-pulsante {
+  animation: pulsoNeon 2s infinite alternate ease-in-out;
+  display: inline-block;
+}
+
+/* 2. Animación de "Esperando jugadores..." (Respiración) */
+@keyframes respiracion {
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+}
+.texto-esperando {
+  animation: respiracion 1.5s infinite ease-in-out;
+}
+
+/* 3. Entrada triunfal para los jugadores (Deslizar y rebotar) */
+@keyframes entradaJugador {
+  0% { opacity: 0; transform: translateY(-20px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tarjeta-jugador-animada {
+  animation: entradaJugador 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 4. Botón de anfitrión con gradiente en movimiento */
+@keyframes lavaLamp {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.boton-anfitrion-animado {
+  background: linear-gradient(270deg, #FF007A, #7A00FF, #00FFA3, #FF007A) !important;
+  background-size: 300% 300% !important;
+  animation: lavaLamp 4s ease infinite !important;
+  box-shadow: 0 4px 15px rgba(122, 0, 255, 0.4) !important;
+  transition: transform 0.2s !important;
+}
+.boton-anfitrion-animado:active {
+  transform: scale(0.95) !important;
+}
