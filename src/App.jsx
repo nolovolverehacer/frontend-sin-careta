@@ -343,28 +343,28 @@ function App() {
 
       {pantalla === 'LOBBY' && (
         <div style={estilos.tarjetaGlass}>
-          <h2 style={{ color: '#00FFA3', marginBottom: '5px', letterSpacing: '2px' }}>SALA: {miSala}</h2>
-{/* CÓDIGO QR PARA INVITAR */}
-          <div style={{ background: '#FFF', padding: '10px', borderRadius: '12px', display: 'inline-block', marginBottom: '10px', marginTop: '10px' }}>
-            <QRCodeCanvas 
-              value={`https://vercel.com/nolovolverehacer-7143s-projects/frontend-sin-careta/Hi24Myo2QV5FZKYYPYzNXCr69Bro/?sala=${miSala}`} 
-              size={140} 
-              level={"H"}
-            />
-          </div>
-          <p style={{ color: '#00FFA3', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '25px', textTransform: 'uppercase' }}>
-            ¡Escaneá para unirte directo!
-          </p>
-          <p style={{ color: '#A09FB1', marginBottom: '25px' }}>Esperando a los mentirosos...</p>
+          {/* Aplicamos la animación pulsante al código de la sala */}
+          <h2 className="texto-neon-pulsante" style={{ color: '#00FFA3', marginBottom: '5px', letterSpacing: '2px', fontSize: '2rem' }}>SALA: {miSala}</h2>
+          
+          {/* Aplicamos la animación de respiración al texto */}
+          <p className="texto-esperando" style={{ color: '#A09FB1', marginBottom: '25px', fontWeight: 'bold' }}>Esperando a los mentirosos...</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
-              <div key={i} style={{background: 'rgba(0,0,0,0.3)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '8px', fontWeight: '600', display: 'flex', justifyContent: 'space-between'}}>
-                <span>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''}</span>
-                <span style={{color: '#00FFA3'}}>{j.puntos} pts</span>
+              {/* Aplicamos el rebote a la tarjeta y un retraso para que entren en cascada */}
+              <div key={i} className="tarjeta-jugador-animada" style={{ background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s` }}>
+                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''}</span>
+                <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
           </div>
+
+          {/* CÓDIGO QR PARA INVITAR (Si agregaste el QR antes) */}
+          {window.QRCodeCanvas && (
+             <div style={{ background: '#FFF', padding: '10px', borderRadius: '12px', display: 'inline-block', marginBottom: '10px', marginTop: '10px' }}>
+               <QRCodeCanvas value={`https://TU_LINK_DE_VERCEL_ACA.vercel.app/?sala=${miSala}`} size={140} level={"H"} />
+             </div>
+          )}
 
           {jugadores.find(j => j.id === miId)?.esAnfitrion ? (
             <div style={{ width: '100%' }}>
@@ -374,14 +374,15 @@ function App() {
                 <option value="TEST_C">🔪 Buda con Puñal (Agresión)</option>
                 <option value="TEST_D">🍻 Reglas de Barrio (Códigos)</option>
               </select>
-              <button style={estilos.botonPrincipal} onClick={prepararJuego}>SIGUIENTE</button>
+              {/* Aplicamos el botón arcoíris animado al anfitrión */}
+              <button className="boton-anfitrion-animado" style={estilos.botonPrincipal} onClick={prepararJuego}>EMPEZAR PREVIA</button>
             </div>
           ) : (
-            <p style={{color: '#00FFA3', fontWeight: 'bold'}}>El anfitrión está preparando el juego...</p>
+            <p className="texto-esperando" style={{color: '#00FFA3', fontWeight: 'bold'}}>El anfitrión está armando el juego...</p>
           )}
         </div>
       )}
-
+          
       {/* 🚀 PANTALLA DE REGLAS */}
       {pantalla === 'REGLAS' && (
         <div style={{...estilos.tarjetaGlass, maxWidth: '500px'}}>
