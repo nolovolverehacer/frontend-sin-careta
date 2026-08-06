@@ -1,23 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Confetti from 'react-confetti';
-import html2canvas from 'html2canvas'; // 🚀 LIBRERÍA PARA FOTOS DE INSTAGRAM
+import html2canvas from 'html2canvas'; 
 import './App.css';
 import { QRCodeCanvas } from 'qrcode.react';
 
 const socket = io('https://sin-careta-backend.onrender.com');
 
-// 🚀 ZOOLÓGICO DE AVATARES (24 opciones)
 const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈','🐖','🐅','🦥','🦦','🦨','🦇','🦩','🦅','🦈','🐊','🦖','🦄','🐸','🐼','🐨'];
 
 function App() {
   const [pantalla, setPantalla] = useState('INICIO'); 
   const [nombre, setNombre] = useState('');
   const [codigoSala, setCodigoSala] = useState(() => {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('sala') || '';
-});
-  const [avatarElegido, setAvatarElegido] = useState('🦊'); // Avatar por defecto
+    const params = new URLSearchParams(window.location.search);
+    return params.get('sala') || '';
+  });
+  const [avatarElegido, setAvatarElegido] = useState('🦊'); 
 
   const [jugadores, setJugadores] = useState([]);
   const [miSala, setMiSala] = useState('');
@@ -107,7 +106,7 @@ function App() {
 
     socket.on('error_conexion', (data) => { alert(data.mensaje); });
 
-    socket.on('pantalla_reglas', () => { setPantalla('REGLAS'); }); // 🚀 LLEGAN LAS REGLAS
+    socket.on('pantalla_reglas', () => { setPantalla('REGLAS'); }); 
 
     socket.on('nueva_pregunta', (data) => {
       setPreguntaActual(data.pregunta);
@@ -267,7 +266,6 @@ function App() {
     socket.emit('votar_juicio', { codigoSala: miSala, idAcusado: acusado.id, voto });
   };
 
-  // 📸 FUNCIÓN MÁGICA PARA INSTAGRAM
   const descargarProntuario = () => {
     reproducirSonido('click');
     const elemento = document.getElementById('prontuario-export');
@@ -343,8 +341,8 @@ function App() {
 
       {pantalla === 'LOBBY' && (
         <div style={estilos.tarjetaGlass}>
-          <h2 style={{ color: '#00FFA3', marginBottom: '5px', letterSpacing: '2px' }}>SALA: {miSala}</h2>
-{/* CÓDIGO QR PARA INVITAR */}
+          <h2 className="texto-neon-pulsante" style={{ color: '#00FFA3', marginBottom: '5px', letterSpacing: '2px', fontSize: '2rem' }}>SALA: {miSala}</h2>
+          
           <div style={{ background: '#FFF', padding: '10px', borderRadius: '12px', display: 'inline-block', marginBottom: '10px', marginTop: '10px' }}>
             <QRCodeCanvas 
               value={`https://frontend-sin-careta.vercel.app/?sala=${miSala}`} 
@@ -355,13 +353,14 @@ function App() {
           <p style={{ color: '#00FFA3', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '25px', textTransform: 'uppercase' }}>
             ¡Escaneá para unirte directo!
           </p>
-          <p style={{ color: '#A09FB1', marginBottom: '25px' }}>Esperando a los mentirosos...</p>
+
+          <p className="texto-esperando" style={{ color: '#A09FB1', marginBottom: '25px', fontWeight: 'bold' }}>Esperando a los mentirosos...</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
-              <div key={i} style={{background: 'rgba(0,0,0,0.3)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '8px', fontWeight: '600', display: 'flex', justifyContent: 'space-between'}}>
-                <span>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''}</span>
-                <span style={{color: '#00FFA3'}}>{j.puntos} pts</span>
+              <div key={i} className="tarjeta-jugador-animada" style={{background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s`}}>
+                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''}</span>
+                <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
           </div>
@@ -374,15 +373,14 @@ function App() {
                 <option value="TEST_C">🔪 Buda con Puñal (Agresión)</option>
                 <option value="TEST_D">🍻 Reglas de Barrio (Códigos)</option>
               </select>
-              <button style={estilos.botonPrincipal} onClick={prepararJuego}>SIGUIENTE</button>
+              <button className="boton-anfitrion-animado" style={estilos.botonPrincipal} onClick={prepararJuego}>EMPEZAR PREVIA</button>
             </div>
           ) : (
-            <p style={{color: '#00FFA3', fontWeight: 'bold'}}>El anfitrión está preparando el juego...</p>
+            <p className="texto-esperando" style={{color: '#00FFA3', fontWeight: 'bold'}}>El anfitrión está armando el juego...</p>
           )}
         </div>
       )}
 
-      {/* 🚀 PANTALLA DE REGLAS */}
       {pantalla === 'REGLAS' && (
         <div style={{...estilos.tarjetaGlass, maxWidth: '500px'}}>
           <h2 style={{ color: '#FF007A', marginBottom: '15px', fontWeight: '900', fontSize: '1.8rem', textAlign: 'center' }}>⚠️ ADVERTENCIA LEGAL ⚠️</h2>
@@ -523,10 +521,9 @@ function App() {
         </div>
       )}
 
-     {pantalla === 'RESULTADOS' && miPerfil && (
+      {pantalla === 'RESULTADOS' && miPerfil && (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10, paddingBottom: '40px' }}>
           
-          {/* 🚀 TARJETA ESTÉTICA PARA EXPORTAR A INSTAGRAM */}
           <div id="prontuario-export" className="prontuario-instagram">
             <div className="sello-clasificacion">{miPerfil.sello}</div>
             
@@ -550,10 +547,9 @@ function App() {
               {miPerfil.descripcion}
             </p>
 
-            {/* MARCA DE AGUA PUBLICITARIA */}
             <div className="marca-agua-ig">
               <h4>SIN CARETA</h4>
-              <span className="link-juego">https://frontend-sin-careta.vercel.app/</span>
+              <span className="link-juego">https://frontend-sin-careta.vercel.app</span>
             </div>
           </div>
 
@@ -561,7 +557,6 @@ function App() {
             📸 COMPARTIR EN INSTAGRAM
           </button>
           
-          {/* ☕ BOTÓN DE CAFECITO SUPER VISIBLE */}
           <button 
             style={{ ...estilos.botonSecundario, marginTop: '10px', maxWidth: '300px', background: 'linear-gradient(45deg, #FFD700, #FFA500)', color: '#000', boxShadow: '0 5px 20px rgba(255, 215, 0, 0.4)' }} 
             onClick={() => { reproducirSonido('click'); window.open('https://cafecito.app/sin_careta', '_blank'); }}
