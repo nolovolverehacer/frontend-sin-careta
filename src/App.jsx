@@ -1,3 +1,4 @@
+import logoImagen from './logo.png';
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Confetti from 'react-confetti';
@@ -329,7 +330,7 @@ function App() {
      {pantalla !== 'PREGUNTA' && pantalla !== 'REVELACION' && pantalla !== 'TRIBUNAL' && pantalla !== 'RESULTADOS' && (
         <>
           <img 
-            src="/logo.png" 
+            src={logoImagen} 
             alt="Logo Sin Careta" 
             style={{ 
               width: '100%', 
