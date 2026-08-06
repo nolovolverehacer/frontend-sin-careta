@@ -4,7 +4,8 @@ import Confetti from 'react-confetti';
 import html2canvas from 'html2canvas'; // 🚀 LIBRERÍA PARA FOTOS DE INSTAGRAM
 import './App.css';
 
-const socket = io('https://sin-careta-backend.onrender.com');
+const socket = io('http://localhost:4001');
+
 // 🚀 ZOOLÓGICO DE AVATARES (24 opciones)
 const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈','🐖','🐅','🦥','🦦','🦨','🦇','🦩','🦅','🦈','🐊','🦖','🦄','🐸','🐼','🐨'];
 
@@ -320,12 +321,7 @@ function App() {
           <p style={{color: '#FFF', fontWeight: 'bold', marginBottom: '10px'}}>Elegí tu Espíritu Animal:</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginBottom: '20px', maxWidth: '300px' }}>
             {ANIMALES.map(a => (
-              <button 
-                key={a} 
-                className="emoji-avatar boton-avatar-mobile"
-                onClick={() => {reproducirSonido('click'); setAvatarElegido(a);}} 
-                style={{ background: avatarElegido === a ? '#00FFA3' : 'rgba(255,255,255,0.05)', border: avatarElegido === a ? '2px solid #FFF' : '1px solid transparent', borderRadius: '8px', fontSize: '1.5rem', padding: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
-              >
+              <button key={a} onClick={() => {reproducirSonido('click'); setAvatarElegido(a);}} style={{ background: avatarElegido === a ? '#00FFA3' : 'rgba(255,255,255,0.05)', border: avatarElegido === a ? '2px solid #FFF' : '1px solid transparent', borderRadius: '8px', fontSize: '1.5rem', padding: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
                 {a}
               </button>
             ))}
@@ -512,12 +508,70 @@ function App() {
         </div>
       )}
 
-      {pantalla === 'RESULTADOS' && miPerfil && (
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10 }}>
+     {pantalla === 'RESULTADOS' && miPerfil && (
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10, paddingBottom: '40px' }}>
           
-          {/* 🚀 TARJETA OPTIMIZADA PARA EXPORTAR A INSTAGRAM */}
-          <div id="prontuario-export" style={estilos.prontuario}>
-            <div style={estilos.sello}>{miPerfil.sello}</div>
+          {/* 🚀 TARJETA ESTÉTICA PARA EXPORTAR A INSTAGRAM */}
+          <div id="prontuario-export" className="prontuario-instagram">
+            <div className="sello-clasificacion">{miPerfil.sello}</div>
+            
+            <p style={{ fontSize: '1rem', textTransform: 'uppercase', color: '#00FFA3', fontWeight: '800', letterSpacing: '2px', marginBottom: '15px' }}>
+              ⚠️ EXPEDIENTE TÓXICO ⚠️
+            </p>
+            
+            <div style={{ background: 'rgba(0,0,0,0.4)', padding: '20px', borderRadius: '16px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#A09FB1', margin: '0 0 10px 0' }}>
+                Acusado: <span style={{ color: '#FFF', fontSize: '1.4rem', fontWeight: '900', display: 'block', marginTop: '5px' }}>{miJugador.avatar} {miJugador.nombre}</span>
+              </p>
+              <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#A09FB1', margin: 0 }}>
+                Nivel de Maldad: <span style={{ color: '#FF007A', fontWeight: '900', fontSize: '1.3rem' }}>{miJugador.puntos} pts</span>
+              </p>
+            </div>
+            
+            <h2 style={{ fontSize: '1.8rem', fontWeight: '900', lineHeight: '1.2', marginBottom: '15px', color: '#FFF', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>
+              "{miPerfil.titulo}"
+            </h2>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.6', color: '#E0E0E0', fontWeight: '500' }}>
+              {miPerfil.descripcion}
+            </p>
+
+            {/* MARCA DE AGUA PUBLICITARIA */}
+            <div className="marca-agua-ig">
+              <h4>SIN CARETA</h4>
+              <span className="link-juego">https://frontend-sin-careta.vercel.app/</span>
+            </div>
+          </div>
+
+          <button style={{...estilos.botonInstagram, padding: '16px 20px', fontSize: '1.1rem'}} onClick={descargarProntuario}>
+            📸 COMPARTIR EN INSTAGRAM
+          </button>
+          
+          {/* ☕ BOTÓN DE CAFECITO SUPER VISIBLE */}
+          <button 
+            style={{ ...estilos.botonSecundario, marginTop: '10px', maxWidth: '300px', background: 'linear-gradient(45deg, #FFD700, #FFA500)', color: '#000', boxShadow: '0 5px 20px rgba(255, 215, 0, 0.4)' }} 
+            onClick={() => { reproducirSonido('click'); window.open('https://cafecito.app/sin_careta', '_blank'); }}
+          >
+            🍻 ¿TE REÍSTE? PAGÁ UNA BIRRA
+          </button>
+
+          <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.1)', margin: '30px 0' }}></div>
+
+          <h3 style={{ color: '#00FFA3', marginBottom: '20px', fontSize: '1.1rem', letterSpacing: '2px', textTransform: 'uppercase' }}>🏆 Ranking Final</h3>
+          
+          <div style={{ width: '100%', maxWidth: '380px', marginBottom: '40px' }}>
+            {jugadores.map((j, i) => (
+              <div key={i} style={{ background: i === 0 ? 'linear-gradient(45deg, #FF007A, #7A00FF)' : 'rgba(255,255,255,0.05)', color: '#FFF', padding: '15px 20px', borderRadius: '12px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', boxShadow: i === 0 ? '0 5px 15px rgba(255,0,122,0.3)' : 'none' }}>
+                <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''}</span>
+                <span style={{ fontSize: '1.1rem' }}>{j.puntos} pts</span>
+              </div>
+            ))}
+          </div>
+
+          <button style={{ ...estilos.botonPrincipal, maxWidth: '300px' }} onClick={() => { reproducirSonido('click'); window.location.reload(); }}>
+            VOLVER A EMPEZAR
+          </button>
+        </div>
+      )}
             
             <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#00FFA3', borderBottom: '1px solid rgba(0,255,163,0.3)', paddingBottom: '8px', marginBottom: '20px', letterSpacing: '1px' }}>
               EXPEDIENTE OFICIAL
