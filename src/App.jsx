@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import Confetti from 'react-confetti';
 import html2canvas from 'html2canvas'; // 🚀 LIBRERÍA PARA FOTOS DE INSTAGRAM
 import './App.css';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const socket = io('http://localhost:4001');
 
@@ -12,7 +13,10 @@ const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈'
 function App() {
   const [pantalla, setPantalla] = useState('INICIO'); 
   const [nombre, setNombre] = useState('');
-  const [codigoSala, setCodigoSala] = useState('');
+  const [codigoSala, setCodigoSala] = useState(() => {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('sala') || '';
+});
   const [avatarElegido, setAvatarElegido] = useState('🦊'); // Avatar por defecto
 
   const [jugadores, setJugadores] = useState([]);
@@ -340,6 +344,17 @@ function App() {
       {pantalla === 'LOBBY' && (
         <div style={estilos.tarjetaGlass}>
           <h2 style={{ color: '#00FFA3', marginBottom: '5px', letterSpacing: '2px' }}>SALA: {miSala}</h2>
+{/* CÓDIGO QR PARA INVITAR */}
+          <div style={{ background: '#FFF', padding: '10px', borderRadius: '12px', display: 'inline-block', marginBottom: '10px', marginTop: '10px' }}>
+            <QRCodeCanvas 
+              value={`https://vercel.com/nolovolverehacer-7143s-projects/frontend-sin-careta/Hi24Myo2QV5FZKYYPYzNXCr69Bro/?sala=${miSala}`} 
+              size={140} 
+              level={"H"}
+            />
+          </div>
+          <p style={{ color: '#00FFA3', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '25px', textTransform: 'uppercase' }}>
+            ¡Escaneá para unirte directo!
+          </p>
           <p style={{ color: '#A09FB1', marginBottom: '25px' }}>Esperando a los mentirosos...</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
