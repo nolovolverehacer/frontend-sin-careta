@@ -229,7 +229,7 @@ function App() {
     if (!nombre.trim()) return alert('¡Ponete un nombre, careta!');
     if (!codigoSala.trim()) return alert('Ingresá el código de la sala');
     reproducirSonido('click');
-    socket.emit('unirse_sala', { codigoSala: codigoSala.toUpperCase(), nombreUsuario: nombre, avatar: avatarElegido });
+    socket.emit('unirse_sala', { codigoSala: codigoSala.trim().toUpperCase(), nombreUsuario: nombre, avatar: avatarElegido });
     setMiSala(codigoSala.toUpperCase());
   };
 
