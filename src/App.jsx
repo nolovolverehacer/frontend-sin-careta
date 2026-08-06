@@ -346,6 +346,8 @@ function App() {
 
           <input style={estilos.input} placeholder="Tu apodo" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={12} />
          <button style={{...estilos.botonPrincipal, opacity: cargando ? 0.7 : 1}} onClick={crearSala} disabled={cargando}>
+{cargando ? 'CONECTANDO...' : 'CREAR SALA'}
+          </button>
           
           <div style={{ margin: '15px 0', width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)' }}></div>
           
