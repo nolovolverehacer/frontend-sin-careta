@@ -587,18 +587,7 @@ function App() {
           </button>
         </div>
       )}
-            
-   <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#00FFA3', borderBottom: '1px solid rgba(0,255,163,0.3)', paddingBottom: '8px', marginBottom: '20px', letterSpacing: '1px' }}>
-              EXPEDIENTE OFICIAL
-            </h3>
-            
-            /* ... BORRAR TODO LO QUE HAY EN EL MEDIO ... */
 
-          <button style={{ ...estilos.botonPrincipal, maxWidth: '300px' }} onClick={() => { reproducirSonido('click'); window.location.reload(); }}>
-            VOLVER AL INICIO
-          </button>
-        </div>
-      )}
     </div>
   );
 }
