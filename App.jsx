@@ -4,7 +4,7 @@ import Confetti from 'react-confetti';
 import html2canvas from 'html2canvas'; // 🚀 LIBRERÍA PARA FOTOS DE INSTAGRAM
 import './App.css';
 
-const socket = io('http://localhost:4001');
+const socket = io('[https://sin-careta-backend.onrender.com](https://sin-careta-backend.onrender.com)');
 
 // 🚀 ZOOLÓGICO DE AVATARES (24 opciones)
 const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈','🐖','🐅','🦥','🦦','🦨','🦇','🦩','🦅','🦈','🐊','🦖','🦄','🐸','🐼','🐨'];
@@ -321,7 +321,12 @@ function App() {
           <p style={{color: '#FFF', fontWeight: 'bold', marginBottom: '10px'}}>Elegí tu Espíritu Animal:</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginBottom: '20px', maxWidth: '300px' }}>
             {ANIMALES.map(a => (
-              <button key={a} onClick={() => {reproducirSonido('click'); setAvatarElegido(a);}} style={{ background: avatarElegido === a ? '#00FFA3' : 'rgba(255,255,255,0.05)', border: avatarElegido === a ? '2px solid #FFF' : '1px solid transparent', borderRadius: '8px', fontSize: '1.5rem', padding: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
+              <button 
+                key={a} 
+                className="emoji-avatar boton-avatar-mobile"
+                onClick={() => {reproducirSonido('click'); setAvatarElegido(a);}} 
+                style={{ background: avatarElegido === a ? '#00FFA3' : 'rgba(255,255,255,0.05)', border: avatarElegido === a ? '2px solid #FFF' : '1px solid transparent', borderRadius: '8px', fontSize: '1.5rem', padding: '8px', cursor: 'pointer', transition: 'all 0.2s' }}
+              >
                 {a}
               </button>
             ))}
