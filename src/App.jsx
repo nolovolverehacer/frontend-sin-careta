@@ -5,7 +5,7 @@ import html2canvas from 'html2canvas'; // 🚀 LIBRERÍA PARA FOTOS DE INSTAGRAM
 import './App.css';
 import { QRCodeCanvas } from 'qrcode.react';
 
-const socket = io('http://localhost:4001');
+const socket = io('https://sin-careta-backend.onrender.com');
 
 // 🚀 ZOOLÓGICO DE AVATARES (24 opciones)
 const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈','🐖','🐅','🦥','🦦','🦨','🦇','🦩','🦅','🦈','🐊','🦖','🦄','🐸','🐼','🐨'];
@@ -343,28 +343,28 @@ function App() {
 
       {pantalla === 'LOBBY' && (
         <div style={estilos.tarjetaGlass}>
-          {/* Aplicamos la animación pulsante al código de la sala */}
-          <h2 className="texto-neon-pulsante" style={{ color: '#00FFA3', marginBottom: '5px', letterSpacing: '2px', fontSize: '2rem' }}>SALA: {miSala}</h2>
-          
-          {/* Aplicamos la animación de respiración al texto */}
-          <p className="texto-esperando" style={{ color: '#A09FB1', marginBottom: '25px', fontWeight: 'bold' }}>Esperando a los mentirosos...</p>
+          <h2 style={{ color: '#00FFA3', marginBottom: '5px', letterSpacing: '2px' }}>SALA: {miSala}</h2>
+{/* CÓDIGO QR PARA INVITAR */}
+          <div style={{ background: '#FFF', padding: '10px', borderRadius: '12px', display: 'inline-block', marginBottom: '10px', marginTop: '10px' }}>
+            <QRCodeCanvas 
+              value={`https://frontend-sin-careta.vercel.app/?sala=${miSala}`} 
+              size={140} 
+              level={"H"}
+            />
+          </div>
+          <p style={{ color: '#00FFA3', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '25px', textTransform: 'uppercase' }}>
+            ¡Escaneá para unirte directo!
+          </p>
+          <p style={{ color: '#A09FB1', marginBottom: '25px' }}>Esperando a los mentirosos...</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
-              {/* Aplicamos el rebote a la tarjeta y un retraso para que entren en cascada */}
-              <div key={i} className="tarjeta-jugador-animada" style={{ background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s` }}>
-                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''}</span>
-                <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
+              <div key={i} style={{background: 'rgba(0,0,0,0.3)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '8px', fontWeight: '600', display: 'flex', justifyContent: 'space-between'}}>
+                <span>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''}</span>
+                <span style={{color: '#00FFA3'}}>{j.puntos} pts</span>
               </div>
             ))}
           </div>
-
-          {/* CÓDIGO QR PARA INVITAR (Si agregaste el QR antes) */}
-          {window.QRCodeCanvas && (
-             <div style={{ background: '#FFF', padding: '10px', borderRadius: '12px', display: 'inline-block', marginBottom: '10px', marginTop: '10px' }}>
-               <QRCodeCanvas value={`https://TU_LINK_DE_VERCEL_ACA.vercel.app/?sala=${miSala}`} size={140} level={"H"} />
-             </div>
-          )}
 
           {jugadores.find(j => j.id === miId)?.esAnfitrion ? (
             <div style={{ width: '100%' }}>
@@ -374,15 +374,14 @@ function App() {
                 <option value="TEST_C">🔪 Buda con Puñal (Agresión)</option>
                 <option value="TEST_D">🍻 Reglas de Barrio (Códigos)</option>
               </select>
-              {/* Aplicamos el botón arcoíris animado al anfitrión */}
-              <button className="boton-anfitrion-animado" style={estilos.botonPrincipal} onClick={prepararJuego}>EMPEZAR PREVIA</button>
+              <button style={estilos.botonPrincipal} onClick={prepararJuego}>SIGUIENTE</button>
             </div>
           ) : (
-            <p className="texto-esperando" style={{color: '#00FFA3', fontWeight: 'bold'}}>El anfitrión está armando el juego...</p>
+            <p style={{color: '#00FFA3', fontWeight: 'bold'}}>El anfitrión está preparando el juego...</p>
           )}
         </div>
       )}
-          
+
       {/* 🚀 PANTALLA DE REGLAS */}
       {pantalla === 'REGLAS' && (
         <div style={{...estilos.tarjetaGlass, maxWidth: '500px'}}>
@@ -589,48 +588,11 @@ function App() {
         </div>
       )}
             
-            <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#00FFA3', borderBottom: '1px solid rgba(0,255,163,0.3)', paddingBottom: '8px', marginBottom: '20px', letterSpacing: '1px' }}>
+   <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: '#00FFA3', borderBottom: '1px solid rgba(0,255,163,0.3)', paddingBottom: '8px', marginBottom: '20px', letterSpacing: '1px' }}>
               EXPEDIENTE OFICIAL
             </h3>
             
-            <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '5px', color: '#A09FB1' }}>
-              Sujeto: <span style={{ color: '#FFF', fontWeight: '800' }}>{miJugador.avatar} {miJugador.nombre}</span>
-            </p>
-            <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '25px', color: '#A09FB1' }}>
-              Toxicidad Acumulada: <span style={{ color: '#FF007A', fontWeight: '900' }}>{miJugador.puntos} pts</span>
-            </p>
-            
-            <h2 style={{ fontSize: '1.8rem', fontWeight: '900', lineHeight: '1.2', marginBottom: '15px', color: '#FFF' }}>
-              "{miPerfil.titulo}"
-            </h2>
-            <p style={{ fontSize: '1.05rem', lineHeight: '1.6', color: '#E0E0E0', marginBottom: '30px' }}>
-              {miPerfil.descripcion}
-            </p>
-
-            {/* MARCA DE AGUA PARA INSTAGRAM */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px', textAlign: 'center' }}>
-              <h4 style={{ margin: 0, color: '#FFF', fontSize: '1.2rem', fontWeight: '900', letterSpacing: '2px', textShadow: '0 0 10px rgba(0,255,163,0.5)' }}>SIN CARETA</h4>
-              <p style={{ margin: 0, color: '#00FFA3', fontSize: '0.9rem', fontWeight: 'bold' }}>#JuegoSinCareta</p>
-            </div>
-          </div>
-
-          <button style={estilos.botonInstagram} onClick={descargarProntuario}>
-            📸 DESCARGAR PARA INSTAGRAM
-          </button>
-          
-          <button style={{ ...estilos.botonSecundario, marginTop: '5px', maxWidth: '300px', background: '#FFD700' }} onClick={() => { reproducirSonido('click'); window.open('https://cafecito.app', '_blank'); }}>
-            🍻 INVITAME UNA BIRRA
-          </button>
-
-          <h3 style={{ color: '#FFF', margin: '25px 0 15px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>TABLA DE POSICIONES:</h3>
-          <div style={{ width: '100%', maxWidth: '380px', marginBottom: '30px' }}>
-            {jugadores.map((j, i) => (
-              <div key={i} style={{ background: i === 0 ? 'linear-gradient(45deg, #00FFA3, #00B8FF)' : 'rgba(255,255,255,0.05)', color: i === 0 ? '#000' : '#FFF', padding: '12px 15px', borderRadius: '10px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                <span>{i + 1}. {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''}</span>
-                <span>{j.puntos} pts</span>
-              </div>
-            ))}
-          </div>
+            /* ... BORRAR TODO LO QUE HAY EN EL MEDIO ... */
 
           <button style={{ ...estilos.botonPrincipal, maxWidth: '300px' }} onClick={() => { reproducirSonido('click'); window.location.reload(); }}>
             VOLVER AL INICIO
