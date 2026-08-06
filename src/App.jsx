@@ -326,9 +326,21 @@ function App() {
         <Confetti width={windowSize.width} height={windowSize.height} colors={['#00FFA3', '#FF007A', '#7A00FF', '#00B8FF', '#FFD700']} recycle={false} numberOfPieces={600} />
       )}
 
-      {pantalla !== 'PREGUNTA' && pantalla !== 'REVELACION' && pantalla !== 'TRIBUNAL' && pantalla !== 'RESULTADOS' && (
+     {pantalla !== 'PREGUNTA' && pantalla !== 'REVELACION' && pantalla !== 'TRIBUNAL' && pantalla !== 'RESULTADOS' && (
         <>
-          <h1 style={estilos.titulo}>SIN CARETA</h1>
+          <img 
+            src="/logo.png" 
+            alt="Logo Sin Careta" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '350px', 
+              aspectRatio: '1/1', /* Fuerza a que sea un cuadrado perfecto */
+              objectFit: 'cover',
+              borderRadius: '50%', /* ¡Acá está la magia! Esto la recorta en un círculo perfecto */
+              marginBottom: '20px', 
+              boxShadow: '0 0 30px rgba(0, 255, 163, 0.3)' /* Le cambié el filtro por un resplandor circular verde neón */
+            }} 
+          />
           <p style={estilos.subtitulo}>El simulador de destrucción de amistades</p>
         </>
       )}
