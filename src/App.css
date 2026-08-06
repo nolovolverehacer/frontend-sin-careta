@@ -49,8 +49,63 @@ body {
   .reloj-mobile {
     font-size: 2.2rem !important;
   }
+}/* DISEÑO DEL PRONTUARIO PARA INSTAGRAM */
+.prontuario-instagram {
+  background: linear-gradient(135deg, #1A1A2E 0%, #0F041C 100%);
+  color: #FFF;
+  padding: 40px 30px;
+  border-radius: 24px;
+  border: 2px solid rgba(0, 255, 163, 0.5);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 0 40px rgba(0, 255, 163, 0.2), inset 0 0 20px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  margin-bottom: 25px;
 }
-    right: 0;
-    border-right-color: var(--border);
-  }
+
+.sello-clasificacion {
+  position: absolute;
+  top: 20px;
+  right: -35px;
+  background: #FF007A;
+  color: #FFF;
+  padding: 8px 50px;
+  font-weight: 900;
+  font-size: 1rem;
+  transform: rotate(35deg);
+  letter-spacing: 3px;
+  box-shadow: 0 5px 15px rgba(255, 0, 122, 0.5);
+  text-transform: uppercase;
+}
+
+.marca-agua-ig {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.marca-agua-ig h4 {
+  font-size: 1.6rem;
+  font-weight: 900;
+  background: linear-gradient(90deg, #FF007A, #7A00FF, #00FFA3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.link-juego {
+  background: rgba(0, 255, 163, 0.15);
+  color: #00FFA3;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
