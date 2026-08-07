@@ -362,7 +362,7 @@ function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
               <div key={i} className="tarjeta-jugador-animada" style={{background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s`}}>
-                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
+                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {miJugador.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
                 <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
@@ -520,7 +520,7 @@ function App() {
             <h3 style={{ color: '#A09FB1', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '15px' }}>Tabla de Toxicidad:</h3>
             {jugadores.map((j, i) => (
               <div key={i} style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
+                <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {miJugador.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
                 <span style={{color: '#00FFA3', fontWeight: '800'}}>{j.puntos} pts</span>
               </div>
             ))}
@@ -591,7 +591,7 @@ function App() {
             {jugadores.map((j, i) => (
               <div key={i} style={{ background: i === 0 ? 'linear-gradient(45deg, #FF007A, #7A00FF)' : 'rgba(255,255,255,0.05)', color: '#FFF', padding: '15px 20px', borderRadius: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', boxShadow: i === 0 ? '0 5px 15px rgba(255,0,122,0.3)' : 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
-                  <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
+                  <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {miJugador.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
                   <span style={{ fontSize: '1.1rem' }}>{j.puntos} pts</span>
                 </div>
                 {j.medalla && (
