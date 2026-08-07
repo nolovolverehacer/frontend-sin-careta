@@ -284,13 +284,12 @@ function App() {
     });
   };
 
-  let miJugador = null;
+  // --- VARIABLES DE JUGADOR DE CLASE SEGURA ---
+  const miJugador = jugadores.find(j => j.id === miId) || null;
   let miPerfil = null;
-  if (pantalla === 'RESULTADOS' && testFinal) {
-    miJugador = jugadores.find(j => j.id === miId);
-    if (miJugador) {
-      miPerfil = testFinal.perfiles_resultado.find(p => miJugador.puntos >= p.rango_min && miJugador.puntos <= p.rango_max);
-    }
+
+  if (pantalla === 'RESULTADOS' && testFinal && miJugador) {
+    miPerfil = testFinal.perfiles_resultado.find(p => miJugador.puntos >= p.rango_min && miJugador.puntos <= p.rango_max);
     jugadores.sort((a, b) => b.puntos - a.puntos);
   }
 
@@ -362,7 +361,7 @@ function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
               <div key={i} className="tarjeta-jugador-animada" style={{background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s`}}>
-                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {miJugador.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
+                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
                 <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
@@ -456,24 +455,29 @@ function App() {
           <div style={estilos.reloj(tiempoRevelacion)}>{tiempoRevelacion}</div>
           
           <div style={{ width: '100%' }}>
-            {revelacionData.map((rev, index) => (
-              <div key={index} style={estilos.tarjetaRevelacion}>
-                <span style={{ fontSize: '1.2rem', fontWeight: '800', color: '#00FFA3' }}>{rev.avatar} {rev.nombreJugador} {jugadores.find(j=>j.id===rev.idJugador)?.puntos >= 50 ? '🔥' : ''}</span>
-                <span style={{ marginTop: '10px', fontSize: '1.1rem', color: '#E0E0E0' }}>Eligió: <i>"{rev.opcionElegida.texto}"</i></span>
-                
-                {rev.esTibia && (
-                  <div className="alerta-tibio-animada">
-                    🐔 ¡ALERTA: TIBIO DETECTADO! 🐔
-                  </div>
-                )}
-                
-                {rev.idJugador !== miId && !preguntaActual?.es_fuego_cruzado && (
-                  <button style={estilos.botonMentira(acusacionUsada)} onClick={() => !acusacionUsada && hundirBotonMentira(rev.idJugador)} disabled={acusacionUsada}>
-                    {acusacionUsada ? '💥 BALA DE PLATA GASTADA' : `🚨 ¡MENTIRA! (${cuestionamientos[rev.idJugador]?.length || 0} Votos)`}
-                  </button>
-                )}
-              </div>
-            ))}
+            {revelacionData.map((rev, index) => {
+              const jug = jugadores.find(j => j.id === rev.idJugador);
+              return (
+                <div key={index} style={estilos.tarjetaRevelacion}>
+                  <span style={{ fontSize: '1.2rem', fontWeight: '800', color: '#00FFA3' }}>
+                    {rev.avatar} {rev.nombreJugador} {jug && jug.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}
+                  </span>
+                  <span style={{ marginTop: '10px', fontSize: '1.1rem', color: '#E0E0E0' }}>Eligió: <i>"{rev.opcionElegida.texto}"</i></span>
+                  
+                  {rev.esTibia && (
+                    <div className="alerta-tibio-animada">
+                      🐔 ¡ALERTA: TIBIO DETECTADO! 🐔
+                    </div>
+                  )}
+                  
+                  {rev.idJugador !== miId && !preguntaActual?.es_fuego_cruzado && (
+                    <button style={estilos.botonMentira(acusacionUsada)} onClick={() => !acusacionUsada && hundirBotonMentira(rev.idJugador)} disabled={acusacionUsada}>
+                      {acusacionUsada ? '💥 BALA DE PLATA GASTADA' : `🚨 ¡MENTIRA! (${cuestionamientos[rev.idJugador]?.length || 0} Votos)`}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -520,7 +524,7 @@ function App() {
             <h3 style={{ color: '#A09FB1', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '15px' }}>Tabla de Toxicidad:</h3>
             {jugadores.map((j, i) => (
               <div key={i} style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {miJugador.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
+                <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
                 <span style={{color: '#00FFA3', fontWeight: '800'}}>{j.puntos} pts</span>
               </div>
             ))}
@@ -535,7 +539,7 @@ function App() {
         </div>
       )}
 
-      {pantalla === 'RESULTADOS' && miPerfil && (
+      {pantalla === 'RESULTADOS' && miJugador && miPerfil && (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10, paddingBottom: '40px' }}>
           
           <div id="prontuario-export" className="prontuario-instagram">
@@ -550,7 +554,7 @@ function App() {
                 Acusado: <span style={{ color: '#FFF', fontSize: '1.4rem', fontWeight: '900', display: 'block', marginTop: '5px' }}>{miJugador.avatar} {miJugador.nombre}</span>
               </p>
               <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#A09FB1', margin: '0 0 10px 0' }}>
-                Nivel de Maldad: <span style={{ color: '#FF007A', fontWeight: '900', fontSize: '1.3rem' }}>{miJugador.puntos} pts {miJugador.puntos >= 50 ? '🔥' : ''}</span>
+                Nivel de Maldad: <span style={{ color: '#FF007A', fontWeight: '900', fontSize: '1.3rem' }}>{miJugador.puntos} pts {miJugador.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
               </p>
               {miJugador.medalla && (
                 <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#FFD700', margin: '15px 0 0 0', borderTop: '1px solid rgba(255,215,0,0.3)', paddingTop: '10px' }}>
@@ -591,7 +595,7 @@ function App() {
             {jugadores.map((j, i) => (
               <div key={i} style={{ background: i === 0 ? 'linear-gradient(45deg, #FF007A, #7A00FF)' : 'rgba(255,255,255,0.05)', color: '#FFF', padding: '15px 20px', borderRadius: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', boxShadow: i === 0 ? '0 5px 15px rgba(255,0,122,0.3)' : 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
-                  <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {miJugador.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
+                  <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
                   <span style={{ fontSize: '1.1rem' }}>{j.puntos} pts</span>
                 </div>
                 {j.medalla && (
