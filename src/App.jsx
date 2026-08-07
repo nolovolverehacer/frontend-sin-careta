@@ -427,7 +427,7 @@ function App() {
           
           <div style={{ alignSelf: 'flex-start', marginBottom: '20px' }}>
             <span style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#00FFA3', padding: '6px 14px', fontWeight: '700', borderRadius: '20px', fontSize: '0.9rem', letterSpacing: '1px' }}>
-              Ronda {preguntaActual.numero} de {preguntaActual.total}
+              <span>Ronda {preguntaActual.numero} de {preguntaActual.total}</span>
             </span>
           </div>
           
@@ -530,27 +530,36 @@ function App() {
         </div>
       )}
 
-      {pantalla === 'INTERMEDIO' && (
-        <div style={estilos.tarjetaGlass}>
-          <h2 style={{ color: '#00FFA3', marginBottom: '25px', fontWeight: '800' }}>Fin de la Ronda</h2>
-          <div style={{ width: '100%', marginBottom: '30px' }}>
-            <h3 style={{ color: '#A09FB1', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '15px' }}>Tabla de Toxicidad:</h3>
-            {jugadores.map((j, i) => (
-              <div key={i} style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
-                <span style={{color: '#00FFA3', fontWeight: '800'}}>{j.puntos} pts</span>
-              </div>
-            ))}
+    {pantalla === 'INTERMEDIO' && (
+  <div style={estilos.tarjetaGlass}>
+    <h2 style={{ color: '#00FFA3', marginBottom: '25px', fontWeight: '800' }}>Fin de la Ronda</h2>
+    <div style={{ width: '100%', marginBottom: '30px' }}>
+      <h3 style={{ color: '#A09FB1', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '15px' }}>
+        Tabla de Toxicidad:
+      </h3>
+      
+      {/* 1. Hacemos una copia ([...jugadores]) para no mutar el estado */}
+      {/* 2. Ordenamos de MAYOR a MENOR puntos */}
+      {[...jugadores]
+        .sort((a, b) => b.puntos - a.puntos)
+        .map((j, i) => (
+          <div key={i} style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+            <span style={{fontWeight: '600'}}>
+              {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= ((preguntaActual?.total || 17) * 2) ? '🔥' : ''}
+            </span>
+            <span style={{color: '#00FFA3', fontWeight: '800'}}>{j.puntos} pts</span>
           </div>
-          {jugadores.find(j => j.id === miId)?.esAnfitrion ? (
-            <button style={estilos.botonPrincipal} onClick={() => { reproducirSonido('click'); socket.emit('siguiente_pregunta', { codigoSala: miSala }); }}>
-              SIGUIENTE PREGUNTA
-            </button>
-          ) : (
-            <p style={{ color: '#A09FB1' }}>Esperando que el anfitrión avance...</p>
-          )}
-        </div>
-      )}
+        ))}
+    </div>
+    {jugadores.find(j => j.id === miId)?.esAnfitrion ? (
+      <button style={estilos.botonPrincipal} onClick={() => { reproducirSonido('click'); socket.emit('siguiente_pregunta', { codigoSala: miSala }); }}>
+        SIGUIENTE PREGUNTA
+      </button>
+    ) : (
+      <p style={{ color: '#A09FB1' }}>Esperando que el anfitrión avance...</p>
+    )}
+  </div>
+)}
 
       {pantalla === 'RESULTADOS' && miJugador && miPerfil && (
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10, paddingBottom: '40px' }}>
