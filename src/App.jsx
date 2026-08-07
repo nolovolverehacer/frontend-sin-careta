@@ -181,9 +181,11 @@ function App() {
     } 
     else if (pantalla === 'PREGUNTA' && tiempoRestante === 0 && !opcionElegida) {
       reproducirSonido('tick', 'stop');
-      const opciones = preguntaActual.opciones;
-      const azar = opciones[Math.floor(Math.random() * opciones.length)].id_opcion;
-      enviarRespuesta(azar);
+      const opciones = obtenerOpcionesVisibles();
+      if (opciones.length > 0) {
+        const azar = opciones[Math.floor(Math.random() * opciones.length)].id_opcion;
+        enviarRespuesta(azar);
+      }
     }
     else if (pantalla === 'REVELACION' && tiempoRevelacion > 0) {
       timer = setTimeout(() => setTiempoRevelacion((t) => t - 1), 1000);
@@ -247,7 +249,8 @@ function App() {
 
   const iniciarJuego = () => {
     reproducirSonido('click');
-    socket.emit('iniciar_juego', { codigoSala: miSala });
+    // Envia parámetros para asegurar el filtrado de preguntas en backend
+    socket.emit('iniciar_juego', { codigoSala: miSala, idTest: testSeleccionado, parte: parteSeleccionada });
   };
 
   const enviarRespuesta = (idOpcion) => {
@@ -284,7 +287,17 @@ function App() {
     });
   };
 
-  // --- VARIABLES DE JUGADOR DE CLASE SEGURA ---
+  // Genera dinámicamente opciones si la pregunta requiere votar a un participante
+  const obtenerOpcionesVisibles = () => {
+    if (!preguntaActual) return [];
+    if (preguntaActual.es_seleccion_jugador) {
+      return jugadores
+        .filter(j => j.id !== miId)
+        .map(j => ({ id_opcion: j.id, texto: `${j.avatar} ${j.nombre}` }));
+    }
+    return preguntaActual.opciones || [];
+  };
+
   const miJugador = jugadores.find(j => j.id === miId) || null;
   let miPerfil = null;
 
@@ -296,7 +309,6 @@ function App() {
   const estilos = {
     contenedor: { background: 'radial-gradient(circle at 50% 0%, #2A0845 0%, #0F041C 100%)', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '20px', boxSizing: 'border-box' },
     tarjetaGlass: { background: 'rgba(255, 255, 255, 0.03)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '24px', padding: '30px', boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.4)', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10 },
-    titulo: { fontSize: '4.2rem', fontWeight: '900', background: 'linear-gradient(90deg, #FF007A 0%, #7A00FF 50%, #00FFA3 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: '0', textAlign: 'center', zIndex: 10, letterSpacing: '4px', padding: '10px 0', lineHeight: '1.2', filter: 'drop-shadow(0px 4px 15px rgba(255, 0, 122, 0.6))' },
     subtitulo: { color: '#00FFA3', marginBottom: '30px', zIndex: 10, fontWeight: '700', fontSize: '0.9rem', letterSpacing: '3px', textTransform: 'uppercase', textShadow: '0 0 10px rgba(0, 255, 163, 0.5)', textAlign: 'center' },
     input: { padding: '16px', fontSize: '1.1rem', background: 'rgba(0, 0, 0, 0.2)', color: '#FFF', border: '1px solid rgba(255, 255, 255, 0.15)', borderRadius: '16px', marginBottom: '15px', width: '100%', textAlign: 'center', outline: 'none', transition: 'border 0.3s' },
     botonPrincipal: { padding: '16px 30px', fontSize: '1.2rem', fontWeight: '800', background: 'linear-gradient(45deg, #FF007A, #7A00FF)', color: '#FFF', border: 'none', borderRadius: '30px', boxShadow: '0 4px 15px rgba(255, 0, 122, 0.4)', cursor: 'pointer', width: '100%', marginBottom: '15px', transition: 'transform 0.2s, boxShadow 0.2s' },
@@ -305,9 +317,10 @@ function App() {
     botonMentira: (usado) => ({ padding: '12px', fontSize: '1rem', fontWeight: '800', background: usado ? 'rgba(255, 255, 255, 0.1)' : 'linear-gradient(45deg, #FF007A, #FF4B2B)', color: usado ? '#888' : '#FFF', border: 'none', borderRadius: '12px', boxShadow: usado ? 'none' : '0 4px 15px rgba(255, 0, 122, 0.3)', cursor: usado ? 'not-allowed' : 'pointer', marginTop: '15px', width: '100%' }),
     botonOpcion: (seleccionada, bloqueado, esFuegoCruzado) => ({ padding: '16px', fontSize: '1.1rem', fontWeight: '600', background: seleccionada ? 'rgba(0, 255, 163, 0.1)' : (esFuegoCruzado ? 'rgba(255, 0, 122, 0.1)' : 'rgba(255, 255, 255, 0.05)'), color: seleccionada ? '#00FFA3' : '#FFF', border: seleccionada ? '2px solid #00FFA3' : (esFuegoCruzado ? '1px solid rgba(255, 0, 122, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)'), borderRadius: '16px', boxShadow: seleccionada ? '0 0 15px rgba(0, 255, 163, 0.2)' : 'none', cursor: bloqueado ? 'not-allowed' : 'pointer', width: '100%', marginBottom: '12px', textAlign: 'left', opacity: (bloqueado && !seleccionada) ? 0.4 : 1 }),
     reloj: (tiempo) => ({ fontSize: '3rem', fontWeight: '900', color: tiempo <= 10 ? '#FF007A' : '#00FFA3', textShadow: tiempo <= 10 ? '0 0 20px rgba(255,0,122,0.6)' : '0 0 20px rgba(0,255,163,0.4)', marginBottom: '20px' }),
-    tarjetaRevelacion: { background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '20px', borderRadius: '16px', marginBottom: '15px', width: '100%', display: 'flex', flexDirection: 'column' },
-    prontuario: { background: 'linear-gradient(135deg, #1A1A2E, #16213E)', color: '#FFF', padding: '30px', borderRadius: '20px', border: '1px solid rgba(0, 255, 163, 0.3)', position: 'relative', overflow: 'hidden', width: '100%', maxWidth: '380px', boxShadow: '0 0 30px rgba(0, 255, 163, 0.15)', marginBottom: '20px', textAlign: 'left', zIndex: 10 }
+    tarjetaRevelacion: { background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '20px', borderRadius: '16px', marginBottom: '15px', width: '100%', display: 'flex', flexDirection: 'column' }
   };
+
+  const opcionesVisibles = obtenerOpcionesVisibles();
 
   return (
     <div style={estilos.contenedor}>
@@ -430,16 +443,16 @@ function App() {
               {prediccionJugador && (
                 <select style={{...estilos.input, marginBottom: 0}} value={prediccionOpcion} onChange={(e) => setPrediccionOpcion(e.target.value)}>
                   <option value="">¿Qué va a responder?</option>
-                  {preguntaActual.opciones.map((o, index) => (<option key={o.id_opcion} value={o.id_opcion}>Opción {LETRAS_OPCIONES[index]}</option>))}
+                  {oppcionesVisibles.map((o, index) => (<option key={o.id_opcion} value={o.id_opcion}>{o.texto}</option>))}
                 </select>
               )}
             </div>
           )}
 
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-            {preguntaActual.opciones.map((opt, index) => (
+            {opcionesVisibles.map((opt, index) => (
               <button key={opt.id_opcion} style={estilos.botonOpcion(opcionElegida === opt.id_opcion, opcionElegida !== null, preguntaActual.es_fuego_cruzado)} onClick={() => !opcionElegida && enviarRespuesta(opt.id_opcion)} disabled={opcionElegida !== null}>
-                {!preguntaActual.es_fuego_cruzado && (
+                {!preguntaActual.es_fuego_cruzado && !preguntaActual.es_seleccion_jugador && (
                    <strong style={{color: opcionElegida === opt.id_opcion ? '#00FFA3' : '#FF007A', marginRight: '10px'}}>{LETRAS_OPCIONES[index]}</strong> 
                 )}
                 {opt.texto}
@@ -579,13 +592,6 @@ function App() {
           <button style={{...estilos.botonInstagram, padding: '16px 20px', fontSize: '1.1rem'}} onClick={descargarProntuario}>
             📸 COMPARTIR EN INSTAGRAM
           </button>
-          
-          <button 
-            style={{ ...estilos.botonSecundario, marginTop: '10px', maxWidth: '300px', background: 'linear-gradient(45deg, #FFD700, #FFA500)', color: '#000', boxShadow: '0 5px 20px rgba(255, 215, 0, 0.4)' }} 
-            onClick={() => { reproducirSonido('click'); window.open('https://cafecito.app/sin_careta', '_blank'); }}
-          >
-            🍻 ¿TE REÍSTE? PAGÁ UNA BIRRA
-          </button>
 
           <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.1)', margin: '30px 0' }}></div>
 
@@ -598,11 +604,6 @@ function App() {
                   <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
                   <span style={{ fontSize: '1.1rem' }}>{j.puntos} pts</span>
                 </div>
-                {j.medalla && (
-                  <div style={{ fontSize: '0.8rem', color: i === 0 ? '#FFF' : '#FFD700', marginTop: '8px', fontWeight: 'normal', fontStyle: 'italic' }}>
-                    {j.medalla}
-                  </div>
-                )}
               </div>
             ))}
           </div>
