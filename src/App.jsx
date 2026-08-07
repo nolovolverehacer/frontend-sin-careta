@@ -1,14 +1,15 @@
-import logoImagen from './logo.png';
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import Confetti from 'react-confetti';
 import html2canvas from 'html2canvas'; 
 import './App.css';
 import { QRCodeCanvas } from 'qrcode.react';
+import logoImagen from './logo.png';
 
 const socket = io('https://sin-careta-backend.onrender.com');
 
 const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈','🐖','🐅','🦥','🦦','🦨','🦇','🦩','🦅','🦈','🐊','🦖','🦄','🐸','🐼','🐨'];
+const LETRAS_OPCIONES = ['A)', 'B)', 'C)', 'D)', 'E)', 'F)'];
 
 function App() {
   const [pantalla, setPantalla] = useState('INICIO');
@@ -98,6 +99,7 @@ function App() {
       setMiSala(data.codigoSala);
       setJugadores(data.jugadores);
       setMiId(socket.id);
+      setCargando(false); 
       setPantalla('LOBBY');
     });
 
@@ -108,16 +110,7 @@ function App() {
 
     socket.on('error_conexion', (data) => { 
       alert(data.mensaje); 
-      setCargando(false); // Libera el botón para intentar de nuevo
-    });
-    
-    // Y ya que estamos, aseguramos que se apague cuando entra a la sala
-    socket.on('sala_creada', (data) => {
-      setMiSala(data.codigoSala);
-      setJugadores(data.jugadores);
-      setMiId(socket.id);
       setCargando(false); 
-      setPantalla('LOBBY');
     });
 
     socket.on('pantalla_reglas', () => { setPantalla('REGLAS'); }); 
@@ -327,7 +320,7 @@ function App() {
         <Confetti width={windowSize.width} height={windowSize.height} colors={['#00FFA3', '#FF007A', '#7A00FF', '#00B8FF', '#FFD700']} recycle={false} numberOfPieces={600} />
       )}
 
-     {pantalla !== 'PREGUNTA' && pantalla !== 'REVELACION' && pantalla !== 'TRIBUNAL' && pantalla !== 'RESULTADOS' && (
+      {pantalla !== 'PREGUNTA' && pantalla !== 'REVELACION' && pantalla !== 'TRIBUNAL' && pantalla !== 'RESULTADOS' && (
         <>
           <img 
             src={logoImagen} 
@@ -335,11 +328,11 @@ function App() {
             style={{ 
               width: '100%', 
               maxWidth: '350px', 
-              aspectRatio: '1/1', /* Fuerza a que sea un cuadrado perfecto */
+              aspectRatio: '1/1', 
               objectFit: 'cover',
-              borderRadius: '50%', /* ¡Acá está la magia! Esto la recorta en un círculo perfecto */
+              borderRadius: '50%', 
               marginBottom: '20px', 
-              boxShadow: '0 0 30px rgba(0, 255, 163, 0.3)' /* Le cambié el filtro por un resplandor circular verde neón */
+              boxShadow: '0 0 30px rgba(0, 255, 163, 0.3)' 
             }} 
           />
           <p style={estilos.subtitulo}>El simulador de destrucción de amistades</p>
@@ -358,8 +351,8 @@ function App() {
           </div>
 
           <input style={estilos.input} placeholder="Tu apodo" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={12} />
-         <button style={{...estilos.botonPrincipal, opacity: cargando ? 0.7 : 1}} onClick={crearSala} disabled={cargando}>
-{cargando ? 'CONECTANDO...' : 'CREAR SALA'}
+          <button style={{...estilos.botonPrincipal, opacity: cargando ? 0.7 : 1}} onClick={crearSala} disabled={cargando}>
+            {cargando ? 'CONECTANDO...' : 'CREAR SALA'}
           </button>
           
           <div style={{ margin: '15px 0', width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)' }}></div>
@@ -391,7 +384,7 @@ function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
               <div key={i} className="tarjeta-jugador-animada" style={{background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s`}}>
-                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''}</span>
+                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
                 <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
@@ -456,15 +449,16 @@ function App() {
               {prediccionJugador && (
                 <select style={{...estilos.input, marginBottom: 0}} value={prediccionOpcion} onChange={(e) => setPrediccionOpcion(e.target.value)} onClick={(e)=>e.stopPropagation()} onKeyDown={(e)=>{e.stopPropagation(); if(e.key==='Enter')e.preventDefault();}}>
                   <option value="">¿Qué va a responder?</option>
-                  {preguntaActual.opciones.map(o => (<option key={o.id_opcion} value={o.id_opcion}>Opción {o.id_opcion}</option>))}
+                  {preguntaActual.opciones.map((o, index) => (<option key={o.id_opcion} value={o.id_opcion}>Opción {LETRAS_OPCIONES[index]}</option>))}
                 </select>
               )}
             </div>
           )}
 
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-            {preguntaActual.opciones.map(opt => (
+            {preguntaActual.opciones.map((opt, index) => (
               <button key={opt.id_opcion} style={estilos.botonOpcion(opcionElegida === opt.id_opcion, opcionElegida !== null)} onClick={() => !opcionElegida && enviarRespuesta(opt.id_opcion)} disabled={opcionElegida !== null}>
+                <strong style={{color: opcionElegida === opt.id_opcion ? '#00FFA3' : '#FF007A', marginRight: '10px'}}>{LETRAS_OPCIONES[index]}</strong> 
                 {opt.texto}
               </button>
             ))}
@@ -480,10 +474,14 @@ function App() {
           <div style={{ width: '100%' }}>
             {revelacionData.map((rev, index) => (
               <div key={index} style={estilos.tarjetaRevelacion}>
-                <span style={{ fontSize: '1.2rem', fontWeight: '800', color: '#00FFA3' }}>{rev.avatar} {rev.nombreJugador}</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: '800', color: '#00FFA3' }}>{rev.avatar} {rev.nombreJugador} {jugadores.find(j=>j.id===rev.idJugador)?.puntos >= 50 ? '🔥' : ''}</span>
                 <span style={{ marginTop: '10px', fontSize: '1.1rem', color: '#E0E0E0' }}>Eligió: <i>"{rev.opcionElegida.texto}"</i></span>
                 
-                {rev.esTibia && <span style={estilos.badgeTibia}>🐔 TRAMPA TIBIA DETECTADA</span>}
+                {rev.esTibia && (
+                  <div className="alerta-tibio-animada">
+                    🐔 ¡ALERTA: TIBIO DETECTADO! 🐔
+                  </div>
+                )}
                 
                 {rev.idJugador !== miId && (
                   <button style={estilos.botonMentira(acusacionUsada)} onClick={() => !acusacionUsada && hundirBotonMentira(rev.idJugador)} disabled={acusacionUsada}>
@@ -498,7 +496,7 @@ function App() {
 
       {pantalla === 'TRIBUNAL' && (
         <div style={{ width: '100%', maxWidth: '500px', textAlign: 'center' }}>
-          <h1 style={{ color: '#FF007A', fontSize: '3.5rem', fontWeight: '900', textShadow: '0 0 20px rgba(255,0,122,0.6)', letterSpacing: '2px' }}>EL TRIBUNAL</h1>
+          <h1 className="latido-corazon" style={{ color: '#FF007A', fontSize: '3.5rem', fontWeight: '900', letterSpacing: '2px' }}>EL TRIBUNAL</h1>
           <h2 style={{ color: '#FFF', marginBottom: '10px', fontWeight: '500' }}>Acusado: <span style={{color: '#00FFA3', fontSize: '2rem', fontWeight: '800'}}>{acusado?.avatar} {acusado?.nombre}</span></h2>
           <div style={{ background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', marginBottom: '25px', fontStyle: 'italic' }}>"{respuestaAcusado}"</div>
           
@@ -538,7 +536,7 @@ function App() {
             <h3 style={{ color: '#A09FB1', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '15px' }}>Tabla de Toxicidad:</h3>
             {jugadores.map((j, i) => (
               <div key={i} style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''}</span>
+                <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
                 <span style={{color: '#00FFA3', fontWeight: '800'}}>{j.puntos} pts</span>
               </div>
             ))}
@@ -568,7 +566,7 @@ function App() {
                 Acusado: <span style={{ color: '#FFF', fontSize: '1.4rem', fontWeight: '900', display: 'block', marginTop: '5px' }}>{miJugador.avatar} {miJugador.nombre}</span>
               </p>
               <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#A09FB1', margin: 0 }}>
-                Nivel de Maldad: <span style={{ color: '#FF007A', fontWeight: '900', fontSize: '1.3rem' }}>{miJugador.puntos} pts</span>
+                Nivel de Maldad: <span style={{ color: '#FF007A', fontWeight: '900', fontSize: '1.3rem' }}>{miJugador.puntos} pts {miJugador.puntos >= 50 ? '🔥' : ''}</span>
               </p>
             </div>
             
@@ -603,7 +601,7 @@ function App() {
           <div style={{ width: '100%', maxWidth: '380px', marginBottom: '40px' }}>
             {jugadores.map((j, i) => (
               <div key={i} style={{ background: i === 0 ? 'linear-gradient(45deg, #FF007A, #7A00FF)' : 'rgba(255,255,255,0.05)', color: '#FFF', padding: '15px 20px', borderRadius: '12px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', boxShadow: i === 0 ? '0 5px 15px rgba(255,0,122,0.3)' : 'none' }}>
-                <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''}</span>
+                <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
                 <span style={{ fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
