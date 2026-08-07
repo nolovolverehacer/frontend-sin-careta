@@ -173,6 +173,17 @@ function App() {
     };
   }, [miId]);
 
+  // Genera dinámicamente opciones si la pregunta requiere votar a un participante
+  const obtenerOpcionesVisibles = () => {
+    if (!preguntaActual) return [];
+    if (preguntaActual.es_seleccion_jugador) {
+      return jugadores
+        .filter(j => j.id !== miId)
+        .map(j => ({ id_opcion: j.id, texto: `${j.avatar} ${j.nombre}` }));
+    }
+    return preguntaActual.opciones || [];
+  };
+
   useEffect(() => {
     let timer;
     if (pantalla === 'PREGUNTA' && tiempoRestante > 0 && !opcionElegida) {
@@ -285,17 +296,6 @@ function App() {
       link.href = canvas.toDataURL('image/png');
       link.click();
     });
-  };
-
-  // Genera dinámicamente opciones si la pregunta requiere votar a un participante
-  const obtenerOpcionesVisibles = () => {
-    if (!preguntaActual) return [];
-    if (preguntaActual.es_seleccion_jugador) {
-      return jugadores
-        .filter(j => j.id !== miId)
-        .map(j => ({ id_opcion: j.id, texto: `${j.avatar} ${j.nombre}` }));
-    }
-    return preguntaActual.opciones || [];
   };
 
   const miJugador = jugadores.find(j => j.id === miId) || null;
@@ -437,13 +437,13 @@ function App() {
             <div style={{...estilos.tarjetaGlass, background: 'rgba(0, 255, 163, 0.05)', border: '1px solid rgba(0, 255, 163, 0.2)', padding: '20px', marginBottom: '25px'}}>
               <span style={{color: '#00FFA3', fontWeight: '700', fontSize: '0.9rem', marginBottom: '15px'}}>🕵️ VOTO TRAIDOR (Optativo: Acertá y restá 2 pts)</span>
               <select style={estilos.input} value={prediccionJugador} onChange={(e) => setPrediccionJugador(e.target.value)}>
-                <option value="">¿Quién va a mentir?</option>
+                <option value="">¿Quién creés que va a mentir?</option>
                 {jugadores.filter(j => j.id !== miId).map(j => (<option key={j.id} value={j.id}>{j.avatar} {j.nombre}</option>))}
               </select>
               {prediccionJugador && (
                 <select style={{...estilos.input, marginBottom: 0}} value={prediccionOpcion} onChange={(e) => setPrediccionOpcion(e.target.value)}>
                   <option value="">¿Qué va a responder?</option>
-                  {oppcionesVisibles.map((o, index) => (<option key={o.id_opcion} value={o.id_opcion}>{o.texto}</option>))}
+                  {opcionesVisibles.map((o, index) => (<option key={o.id_opcion} value={o.id_opcion}>{o.texto}</option>))}
                 </select>
               )}
             </div>
