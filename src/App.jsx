@@ -26,6 +26,7 @@ function App() {
   const [miId, setMiId] = useState('');
   
   const [testSeleccionado, setTestSeleccionado] = useState('TEST_D'); 
+  const [parteSeleccionada, setParteSeleccionada] = useState(1); 
 
   const [preguntaActual, setPreguntaActual] = useState(null);
   const [tiempoRestante, setTiempoRestante] = useState(60);
@@ -220,11 +221,8 @@ function App() {
       reproducirSonido('tick', 'stop');
       if (!votoJuicio) emitirVotoJuicio('SALVADO');
     }
-    else if (pantalla === 'TRIBUNAL' && (veredictoFinal || votoJuicio)) {
-      reproducirSonido('tick', 'stop');
-    }
     return () => clearTimeout(timer);
-  }, [pantalla, tiempoRestante, opcionElegida, tiempoRevelacion, tiempoJuicio, cuestionamientos, jugadores, veredictoFinal, revelacionData]);
+  }, [pantalla, tiempoRestante, opcionElegida, tiempoRevelacion, tiempoJuicio, cuestionamientos, jugadores, veredictoFinal, revelacionData, preguntaActual]);
 
   const crearSala = () => {
     if (!nombre.trim()) return alert('¡Ponete un nombre, careta!');
@@ -244,7 +242,7 @@ function App() {
 
   const prepararJuego = () => {
     reproducirSonido('click');
-    socket.emit('preparar_juego', { codigoSala: miSala, idTest: testSeleccionado });
+    socket.emit('preparar_juego', { codigoSala: miSala, idTest: testSeleccionado, parte: parteSeleccionada });
   };
 
   const iniciarJuego = () => {
@@ -306,12 +304,10 @@ function App() {
     botonSecundario: { padding: '16px 30px', fontSize: '1.2rem', fontWeight: '800', background: 'linear-gradient(45deg, #00FFA3, #00B8FF)', color: '#000', border: 'none', borderRadius: '30px', boxShadow: '0 4px 15px rgba(0, 255, 163, 0.4)', cursor: 'pointer', width: '100%', marginBottom: '15px' },
     botonInstagram: { padding: '12px 20px', fontSize: '1rem', fontWeight: '800', background: 'linear-gradient(45deg, #F58529, #DD2A7B, #8134AF)', color: '#FFF', border: 'none', borderRadius: '30px', cursor: 'pointer', width: '100%', maxWidth: '300px', marginBottom: '15px', boxShadow: '0 4px 15px rgba(221, 42, 123, 0.4)' },
     botonMentira: (usado) => ({ padding: '12px', fontSize: '1rem', fontWeight: '800', background: usado ? 'rgba(255, 255, 255, 0.1)' : 'linear-gradient(45deg, #FF007A, #FF4B2B)', color: usado ? '#888' : '#FFF', border: 'none', borderRadius: '12px', boxShadow: usado ? 'none' : '0 4px 15px rgba(255, 0, 122, 0.3)', cursor: usado ? 'not-allowed' : 'pointer', marginTop: '15px', width: '100%' }),
-    botonOpcion: (seleccionada, bloqueado) => ({ padding: '16px', fontSize: '1.1rem', fontWeight: '600', background: seleccionada ? 'rgba(0, 255, 163, 0.1)' : 'rgba(255, 255, 255, 0.05)', color: seleccionada ? '#00FFA3' : '#FFF', border: seleccionada ? '2px solid #00FFA3' : '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px', boxShadow: seleccionada ? '0 0 15px rgba(0, 255, 163, 0.2)' : 'none', cursor: bloqueado ? 'not-allowed' : 'pointer', width: '100%', marginBottom: '12px', textAlign: 'left', opacity: (bloqueado && !seleccionada) ? 0.4 : 1 }),
+    botonOpcion: (seleccionada, bloqueado, esFuegoCruzado) => ({ padding: '16px', fontSize: '1.1rem', fontWeight: '600', background: seleccionada ? 'rgba(0, 255, 163, 0.1)' : (esFuegoCruzado ? 'rgba(255, 0, 122, 0.1)' : 'rgba(255, 255, 255, 0.05)'), color: seleccionada ? '#00FFA3' : '#FFF', border: seleccionada ? '2px solid #00FFA3' : (esFuegoCruzado ? '1px solid rgba(255, 0, 122, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)'), borderRadius: '16px', boxShadow: seleccionada ? '0 0 15px rgba(0, 255, 163, 0.2)' : 'none', cursor: bloqueado ? 'not-allowed' : 'pointer', width: '100%', marginBottom: '12px', textAlign: 'left', opacity: (bloqueado && !seleccionada) ? 0.4 : 1 }),
     reloj: (tiempo) => ({ fontSize: '3rem', fontWeight: '900', color: tiempo <= 10 ? '#FF007A' : '#00FFA3', textShadow: tiempo <= 10 ? '0 0 20px rgba(255,0,122,0.6)' : '0 0 20px rgba(0,255,163,0.4)', marginBottom: '20px' }),
     tarjetaRevelacion: { background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '20px', borderRadius: '16px', marginBottom: '15px', width: '100%', display: 'flex', flexDirection: 'column' },
-    badgeTibia: { background: '#FFD700', color: '#000', padding: '5px 12px', fontWeight: '800', borderRadius: '20px', display: 'inline-block', marginTop: '12px', textAlign: 'center', fontSize: '0.85rem' },
-    prontuario: { background: 'linear-gradient(135deg, #1A1A2E, #16213E)', color: '#FFF', padding: '30px', borderRadius: '20px', border: '1px solid rgba(0, 255, 163, 0.3)', position: 'relative', overflow: 'hidden', width: '100%', maxWidth: '380px', boxShadow: '0 0 30px rgba(0, 255, 163, 0.15)', marginBottom: '20px', textAlign: 'left', zIndex: 10 },
-    sello: { position: 'absolute', top: '25px', right: '-15px', color: '#FF007A', border: '3px solid #FF007A', padding: '8px 15px', fontWeight: '900', fontSize: '1.2rem', transform: 'rotate(-20deg)', letterSpacing: '2px', textShadow: '0 0 10px rgba(255,0,122,0.5)', boxShadow: '0 0 10px rgba(255,0,122,0.2) inset' }
+    prontuario: { background: 'linear-gradient(135deg, #1A1A2E, #16213E)', color: '#FFF', padding: '30px', borderRadius: '20px', border: '1px solid rgba(0, 255, 163, 0.3)', position: 'relative', overflow: 'hidden', width: '100%', maxWidth: '380px', boxShadow: '0 0 30px rgba(0, 255, 163, 0.15)', marginBottom: '20px', textAlign: 'left', zIndex: 10 }
   };
 
   return (
@@ -322,19 +318,7 @@ function App() {
 
       {pantalla !== 'PREGUNTA' && pantalla !== 'REVELACION' && pantalla !== 'TRIBUNAL' && pantalla !== 'RESULTADOS' && (
         <>
-          <img 
-            src={logoImagen} 
-            alt="Logo Sin Careta" 
-            style={{ 
-              width: '100%', 
-              maxWidth: '350px', 
-              aspectRatio: '1/1', 
-              objectFit: 'cover',
-              borderRadius: '50%', 
-              marginBottom: '20px', 
-              boxShadow: '0 0 30px rgba(0, 255, 163, 0.3)' 
-            }} 
-          />
+          <img src={logoImagen} alt="Logo Sin Careta" style={{ width: '100%', maxWidth: '350px', aspectRatio: '1/1', objectFit: 'cover', borderRadius: '50%', marginBottom: '20px', boxShadow: '0 0 30px rgba(0, 255, 163, 0.3)' }} />
           <p style={estilos.subtitulo}>El simulador de destrucción de amistades</p>
         </>
       )}
@@ -369,22 +353,16 @@ function App() {
           <h2 className="texto-neon-pulsante" style={{ color: '#00FFA3', marginBottom: '5px', letterSpacing: '2px', fontSize: '2rem' }}>SALA: {miSala}</h2>
           
           <div style={{ background: '#FFF', padding: '10px', borderRadius: '12px', display: 'inline-block', marginBottom: '10px', marginTop: '10px' }}>
-            <QRCodeCanvas 
-              value={`https://frontend-sin-careta.vercel.app/?sala=${miSala}`} 
-              size={140} 
-              level={"H"}
-            />
+            <QRCodeCanvas value={`https://frontend-sin-careta.vercel.app/?sala=${miSala}`} size={140} level={"H"} />
           </div>
-          <p style={{ color: '#00FFA3', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '25px', textTransform: 'uppercase' }}>
-            ¡Escaneá para unirte directo!
-          </p>
+          <p style={{ color: '#00FFA3', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '25px', textTransform: 'uppercase' }}>¡Escaneá para unirte directo!</p>
 
           <p className="texto-esperando" style={{ color: '#A09FB1', marginBottom: '25px', fontWeight: 'bold' }}>Esperando a los mentirosos...</p>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
               <div key={i} className="tarjeta-jugador-animada" style={{background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s`}}>
-                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.esAnfitrion ? '👑' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
+                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
                 <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
@@ -398,6 +376,10 @@ function App() {
                 <option value="TEST_C">🔪 Buda con Puñal (Agresión)</option>
                 <option value="TEST_D">🍻 Reglas de Barrio (Códigos)</option>
               </select>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <button style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #00FFA3', background: parteSeleccionada === 1 ? '#00FFA3' : 'transparent', color: parteSeleccionada === 1 ? '#000' : '#FFF', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setParteSeleccionada(1)}>PARTE 1</button>
+                <button style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #FF007A', background: parteSeleccionada === 2 ? '#FF007A' : 'transparent', color: parteSeleccionada === 2 ? '#000' : '#FFF', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setParteSeleccionada(2)}>PARTE 2</button>
+              </div>
               <button className="boton-anfitrion-animado" style={estilos.botonPrincipal} onClick={prepararJuego}>EMPEZAR PREVIA</button>
             </div>
           ) : (
@@ -437,17 +419,17 @@ function App() {
             </span>
           </div>
           
-          <h2 style={{ fontSize: '1.5rem', lineHeight: '1.4', marginBottom: '30px', fontWeight: '600' }}>{preguntaActual.texto}</h2>
+          <h2 style={{ fontSize: '1.5rem', lineHeight: '1.4', marginBottom: '30px', fontWeight: '600', color: preguntaActual.es_fuego_cruzado ? '#FF007A' : '#FFF', whiteSpace: 'pre-line' }}>{preguntaActual.texto}</h2>
 
-          {!opcionElegida && jugadores.length > 1 && (
+          {!opcionElegida && jugadores.length > 1 && !preguntaActual.es_fuego_cruzado && (
             <div style={{...estilos.tarjetaGlass, background: 'rgba(0, 255, 163, 0.05)', border: '1px solid rgba(0, 255, 163, 0.2)', padding: '20px', marginBottom: '25px'}}>
-              <span style={{color: '#00FFA3', fontWeight: '700', fontSize: '0.9rem', marginBottom: '15px'}}>🕵️ VOTO TRAIDOR (Optativo: Acertá y restá 1 pt)</span>
-              <select style={estilos.input} value={prediccionJugador} onChange={(e) => setPrediccionJugador(e.target.value)} onClick={(e)=>e.stopPropagation()} onKeyDown={(e)=>{e.stopPropagation(); if(e.key==='Enter')e.preventDefault();}}>
+              <span style={{color: '#00FFA3', fontWeight: '700', fontSize: '0.9rem', marginBottom: '15px'}}>🕵️ VOTO TRAIDOR (Optativo: Acertá y restá 2 pts)</span>
+              <select style={estilos.input} value={prediccionJugador} onChange={(e) => setPrediccionJugador(e.target.value)}>
                 <option value="">¿Quién va a mentir?</option>
                 {jugadores.filter(j => j.id !== miId).map(j => (<option key={j.id} value={j.id}>{j.avatar} {j.nombre}</option>))}
               </select>
               {prediccionJugador && (
-                <select style={{...estilos.input, marginBottom: 0}} value={prediccionOpcion} onChange={(e) => setPrediccionOpcion(e.target.value)} onClick={(e)=>e.stopPropagation()} onKeyDown={(e)=>{e.stopPropagation(); if(e.key==='Enter')e.preventDefault();}}>
+                <select style={{...estilos.input, marginBottom: 0}} value={prediccionOpcion} onChange={(e) => setPrediccionOpcion(e.target.value)}>
                   <option value="">¿Qué va a responder?</option>
                   {preguntaActual.opciones.map((o, index) => (<option key={o.id_opcion} value={o.id_opcion}>Opción {LETRAS_OPCIONES[index]}</option>))}
                 </select>
@@ -457,8 +439,10 @@ function App() {
 
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
             {preguntaActual.opciones.map((opt, index) => (
-              <button key={opt.id_opcion} style={estilos.botonOpcion(opcionElegida === opt.id_opcion, opcionElegida !== null)} onClick={() => !opcionElegida && enviarRespuesta(opt.id_opcion)} disabled={opcionElegida !== null}>
-                <strong style={{color: opcionElegida === opt.id_opcion ? '#00FFA3' : '#FF007A', marginRight: '10px'}}>{LETRAS_OPCIONES[index]}</strong> 
+              <button key={opt.id_opcion} style={estilos.botonOpcion(opcionElegida === opt.id_opcion, opcionElegida !== null, preguntaActual.es_fuego_cruzado)} onClick={() => !opcionElegida && enviarRespuesta(opt.id_opcion)} disabled={opcionElegida !== null}>
+                {!preguntaActual.es_fuego_cruzado && (
+                   <strong style={{color: opcionElegida === opt.id_opcion ? '#00FFA3' : '#FF007A', marginRight: '10px'}}>{LETRAS_OPCIONES[index]}</strong> 
+                )}
                 {opt.texto}
               </button>
             ))}
@@ -483,7 +467,7 @@ function App() {
                   </div>
                 )}
                 
-                {rev.idJugador !== miId && (
+                {rev.idJugador !== miId && !preguntaActual?.es_fuego_cruzado && (
                   <button style={estilos.botonMentira(acusacionUsada)} onClick={() => !acusacionUsada && hundirBotonMentira(rev.idJugador)} disabled={acusacionUsada}>
                     {acusacionUsada ? '💥 BALA DE PLATA GASTADA' : `🚨 ¡MENTIRA! (${cuestionamientos[rev.idJugador]?.length || 0} Votos)`}
                   </button>
@@ -565,9 +549,14 @@ function App() {
               <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#A09FB1', margin: '0 0 10px 0' }}>
                 Acusado: <span style={{ color: '#FFF', fontSize: '1.4rem', fontWeight: '900', display: 'block', marginTop: '5px' }}>{miJugador.avatar} {miJugador.nombre}</span>
               </p>
-              <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#A09FB1', margin: 0 }}>
+              <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#A09FB1', margin: '0 0 10px 0' }}>
                 Nivel de Maldad: <span style={{ color: '#FF007A', fontWeight: '900', fontSize: '1.3rem' }}>{miJugador.puntos} pts {miJugador.puntos >= 50 ? '🔥' : ''}</span>
               </p>
+              {miJugador.medalla && (
+                <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#FFD700', margin: '15px 0 0 0', borderTop: '1px solid rgba(255,215,0,0.3)', paddingTop: '10px' }}>
+                  Distinción Especial: <br/><span style={{ fontSize: '0.9rem', color: '#FFF', display: 'block', marginTop: '5px' }}>{miJugador.medalla}</span>
+                </p>
+              )}
             </div>
             
             <h2 style={{ fontSize: '1.8rem', fontWeight: '900', lineHeight: '1.2', marginBottom: '15px', color: '#FFF', textShadow: '0 0 10px rgba(255,255,255,0.2)' }}>
@@ -600,9 +589,16 @@ function App() {
           
           <div style={{ width: '100%', maxWidth: '380px', marginBottom: '40px' }}>
             {jugadores.map((j, i) => (
-              <div key={i} style={{ background: i === 0 ? 'linear-gradient(45deg, #FF007A, #7A00FF)' : 'rgba(255,255,255,0.05)', color: '#FFF', padding: '15px 20px', borderRadius: '12px', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold', boxShadow: i === 0 ? '0 5px 15px rgba(255,0,122,0.3)' : 'none' }}>
-                <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
-                <span style={{ fontSize: '1.1rem' }}>{j.puntos} pts</span>
+              <div key={i} style={{ background: i === 0 ? 'linear-gradient(45deg, #FF007A, #7A00FF)' : 'rgba(255,255,255,0.05)', color: '#FFF', padding: '15px 20px', borderRadius: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', boxShadow: i === 0 ? '0 5px 15px rgba(255,0,122,0.3)' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
+                  <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 50 ? '🔥' : ''}</span>
+                  <span style={{ fontSize: '1.1rem' }}>{j.puntos} pts</span>
+                </div>
+                {j.medalla && (
+                  <div style={{ fontSize: '0.8rem', color: i === 0 ? '#FFF' : '#FFD700', marginTop: '8px', fontWeight: 'normal', fontStyle: 'italic' }}>
+                    {j.medalla}
+                  </div>
+                )}
               </div>
             ))}
           </div>
