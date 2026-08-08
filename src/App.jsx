@@ -48,6 +48,8 @@ function App() {
   const [testFinal, setTestFinal] = useState(null);
   const [acusacionUsada, setAcusacionUsada] = useState(false);
 
+  const [maxPreguntasRonda, setMaxPreguntasRonda] = useState(15);
+
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
   useEffect(() => {
@@ -114,10 +116,26 @@ function App() {
       setCargando(false); 
     });
 
-    socket.on('pantalla_reglas', () => { setPantalla('REGLAS'); }); 
+    socket.on('pantalla_reglas', () => { 
+      setMaxPreguntasRonda(15);
+      setPantalla('REGLAS'); 
+    }); 
 
     socket.on('nueva_pregunta', (data) => {
-      setPreguntaActual(data.pregunta);
+      let preg = data.pregunta;
+
+      // Generar opciones dinámicas si es pregunta de Fuego Cruzado (Elección de jugadores)
+      if (preg.es_fuego_cruzado || preg.numero === 5 || preg.numero === 10) {
+        preg = {
+          ...preg,
+          es_fuego_cruzado: true,
+          opciones: jugadores
+            .filter(j => j.id !== socket.id)
+            .map(j => ({ id_opcion: j.id, texto: `${j.avatar} ${j.nombre}` }))
+        };
+      }
+
+      setPreguntaActual(preg);
       setOpcionElegida(null);
       setPrediccionJugador('');
       setPrediccionOpcion('');
@@ -171,7 +189,7 @@ function App() {
       socket.off('fin_juicio');
       socket.off('juego_terminado');
     };
-  }, [miId]);
+  }, [miId, jugadores]);
 
   useEffect(() => {
     let timer;
@@ -181,7 +199,7 @@ function App() {
     } 
     else if (pantalla === 'PREGUNTA' && tiempoRestante === 0 && !opcionElegida) {
       reproducirSonido('tick', 'stop');
-      const opciones = preguntaActual.opciones;
+      const opciones = preguntaActual?.opciones;
       if (opciones && opciones.length > 0) {
         const azar = opciones[Math.floor(Math.random() * opciones.length)].id_opcion;
         enviarRespuesta(azar);
@@ -275,6 +293,17 @@ function App() {
     socket.emit('votar_juicio', { codigoSala: miSala, idAcusado: acusado.id, voto });
   };
 
+  const finalizarJuegoManualmente = () => {
+    reproducirSonido('click');
+    socket.emit('finalizar_juego', { codigoSala: miSala });
+  };
+
+  const extenderA30Preguntas = () => {
+    reproducirSonido('click');
+    setMaxPreguntasRonda(30);
+    socket.emit('siguiente_pregunta', { codigoSala: miSala });
+  };
+
   const descargarProntuario = () => {
     reproducirSonido('click');
     const elemento = document.getElementById('prontuario-export');
@@ -309,8 +338,7 @@ function App() {
     botonMentira: (usado) => ({ padding: '12px', fontSize: '1rem', fontWeight: '800', background: usado ? 'rgba(255, 255, 255, 0.1)' : 'linear-gradient(45deg, #FF007A, #FF4B2B)', color: usado ? '#888' : '#FFF', border: 'none', borderRadius: '12px', boxShadow: usado ? 'none' : '0 4px 15px rgba(255, 0, 122, 0.3)', cursor: usado ? 'not-allowed' : 'pointer', marginTop: '15px', width: '100%' }),
     botonOpcion: (seleccionada, bloqueado, esFuegoCruzado) => ({ padding: '16px', fontSize: '1.1rem', fontWeight: '600', background: seleccionada ? 'rgba(0, 255, 163, 0.1)' : (esFuegoCruzado ? 'rgba(255, 0, 122, 0.1)' : 'rgba(255, 255, 255, 0.05)'), color: seleccionada ? '#00FFA3' : '#FFF', border: seleccionada ? '2px solid #00FFA3' : (esFuegoCruzado ? '1px solid rgba(255, 0, 122, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)'), borderRadius: '16px', boxShadow: seleccionada ? '0 0 15px rgba(0, 255, 163, 0.2)' : 'none', cursor: bloqueado ? 'not-allowed' : 'pointer', width: '100%', marginBottom: '12px', textAlign: 'left', opacity: (bloqueado && !seleccionada) ? 0.4 : 1 }),
     reloj: (tiempo) => ({ fontSize: '3rem', fontWeight: '900', color: tiempo <= 10 ? '#FF007A' : '#00FFA3', textShadow: tiempo <= 10 ? '0 0 20px rgba(255,0,122,0.6)' : '0 0 20px rgba(0,255,163,0.4)', marginBottom: '20px' }),
-    tarjetaRevelacion: { background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '20px', borderRadius: '16px', marginBottom: '15px', width: '100%', display: 'flex', flexDirection: 'column' },
-    prontuario: { background: 'linear-gradient(135deg, #1A1A2E, #16213E)', color: '#FFF', padding: '30px', borderRadius: '20px', border: '1px solid rgba(0, 255, 163, 0.3)', position: 'relative', overflow: 'hidden', width: '100%', maxWidth: '380px', boxShadow: '0 0 30px rgba(0, 255, 163, 0.15)', marginBottom: '20px', textAlign: 'left', zIndex: 10 }
+    tarjetaRevelacion: { background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '20px', borderRadius: '16px', marginBottom: '15px', width: '100%', display: 'flex', flexDirection: 'column' }
   };
 
   return (
@@ -365,7 +393,7 @@ function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
               <div key={i} className="tarjeta-jugador-animada" style={{background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s`}}>
-                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
+                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 30 ? '🔥' : ''}</span>
                 <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
@@ -418,7 +446,7 @@ function App() {
           
           <div style={{ alignSelf: 'flex-start', marginBottom: '20px' }}>
             <span style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#00FFA3', padding: '6px 14px', fontWeight: '700', borderRadius: '20px', fontSize: '0.9rem', letterSpacing: '1px' }}>
-              Ronda {preguntaActual.numero} de {preguntaActual.total || 17}
+              Ronda {preguntaActual.numero} de {maxPreguntasRonda}
             </span>
           </div>
           
@@ -468,7 +496,7 @@ function App() {
               return (
                 <div key={index} style={estilos.tarjetaRevelacion}>
                   <span style={{ fontSize: '1.2rem', fontWeight: '800', color: '#00FFA3' }}>
-                    {rev.avatar} {rev.nombreJugador} {jugadorInfo?.puntos >= 50 ? '🔥' : ''}
+                    {rev.avatar} {rev.nombreJugador} {jugadorInfo?.puntos >= 30 ? '🔥' : ''}
                   </span>
                   <span style={{ marginTop: '10px', fontSize: '1.1rem', color: '#E0E0E0' }}>Eligió: <i>"{rev.opcionElegida.texto}"</i></span>
                   
@@ -527,24 +555,40 @@ function App() {
 
       {pantalla === 'INTERMEDIO' && (
         <div style={estilos.tarjetaGlass}>
-          <h2 style={{ color: '#00FFA3', marginBottom: '25px', fontWeight: '800' }}>Fin de la Ronda</h2>
+          <h2 style={{ color: '#00FFA3', marginBottom: '25px', fontWeight: '800' }}>Fin de la Pregunta {preguntaActual?.numero || 15}</h2>
           <div style={{ width: '100%', marginBottom: '30px' }}>
             <h3 style={{ color: '#A09FB1', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '15px' }}>Tabla de Toxicidad:</h3>
             
-            {/* TABLA ORDENADA DE MAYOR A MENOR PUNTAJE */}
             {[...jugadores]
               .sort((a, b) => b.puntos - a.puntos)
               .map((j, i) => (
                 <div key={j.id || i} style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
+                  <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 30 ? '🔥' : ''}</span>
                   <span style={{color: '#00FFA3', fontWeight: '800'}}>{j.puntos} pts</span>
                 </div>
               ))}
           </div>
+
           {jugadores.find(j => j.id === miId)?.esAnfitrion ? (
-            <button style={estilos.botonPrincipal} onClick={() => { reproducirSonido('click'); socket.emit('siguiente_pregunta', { codigoSala: miSala }); }}>
-              SIGUIENTE PREGUNTA
-            </button>
+            <div style={{ width: '100%' }}>
+              {preguntaActual?.numero === 15 && maxPreguntasRonda === 15 ? (
+                <>
+                  <p style={{ color: '#FFD700', fontWeight: 'bold', marginBottom: '15px', textAlign: 'center' }}>
+                    ¡Completaron las 15 preguntas iniciales! ¿Qué desean hacer?
+                  </p>
+                  <button style={estilos.botonPrincipal} onClick={finalizarJuegoManualmente}>
+                    🏁 FINALIZAR Y VER RESULTADOS
+                  </button>
+                  <button style={estilos.botonSecundario} onClick={extenderA30Preguntas}>
+                    🚀 EXTENDER A 30 PREGUNTAS
+                  </button>
+                </>
+              ) : (
+                <button style={estilos.botonPrincipal} onClick={() => { reproducirSonido('click'); socket.emit('siguiente_pregunta', { codigoSala: miSala }); }}>
+                  SIGUIENTE PREGUNTA
+                </button>
+              )}
+            </div>
           ) : (
             <p style={{ color: '#A09FB1' }}>Esperando que el anfitrión avance...</p>
           )}
@@ -566,7 +610,7 @@ function App() {
                 Acusado: <span style={{ color: '#FFF', fontSize: '1.4rem', fontWeight: '900', display: 'block', marginTop: '5px' }}>{miJugador.avatar} {miJugador.nombre}</span>
               </p>
               <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#A09FB1', margin: '0 0 10px 0' }}>
-                Nivel de Maldad: <span style={{ color: '#FF007A', fontWeight: '900', fontSize: '1.3rem' }}>{miJugador.puntos} pts {miJugador.puntos >= 50 ? '🔥' : ''}</span>
+                Nivel de Maldad: <span style={{ color: '#FF007A', fontWeight: '900', fontSize: '1.3rem' }}>{miJugador.puntos} pts {miJugador.puntos >= 30 ? '🔥' : ''}</span>
               </p>
               {miJugador.medalla && (
                 <p style={{ fontSize: '1.1rem', fontWeight: '600', color: '#FFD700', margin: '15px 0 0 0', borderTop: '1px solid rgba(255,215,0,0.3)', paddingTop: '10px' }}>
@@ -607,7 +651,7 @@ function App() {
             {jugadoresOrdenados.map((j, i) => (
               <div key={j.id || i} style={{ background: i === 0 ? 'linear-gradient(45deg, #FF007A, #7A00FF)' : 'rgba(255,255,255,0.05)', color: '#FFF', padding: '15px 20px', borderRadius: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', boxShadow: i === 0 ? '0 5px 15px rgba(255,0,122,0.3)' : 'none' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 'bold' }}>
-                  <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= (preguntaActual?.total * 2 || 30) ? '🔥' : ''}</span>
+                  <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '👑' : `${i + 1}.`} {j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 30 ? '🔥' : ''}</span>
                   <span style={{ fontSize: '1.1rem' }}>{j.puntos} pts</span>
                 </div>
                 {j.medalla && (
