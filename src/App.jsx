@@ -97,6 +97,13 @@ function App() {
     }
   }, [pantalla]);
 
+  // NOTA: este efecto ya NO depende de 'jugadores'. Antes se resuscribía a
+  // TODOS los listeners de socket cada vez que cambiaba la lista de
+  // jugadores (cosa que pasa seguido: cada vez que alguien entra o sale de
+  // la sala), lo cual dejaba una ventana corta donde un evento entrante
+  // podía perderse durante el "socket.off" + "socket.on" de la resuscripción.
+  // Ahora la lista de jugadores para Fuego Cruzado la arma el backend, así
+  // que este efecto no necesita leer 'jugadores' en absoluto.
   useEffect(() => {
     socket.on('sala_creada', (data) => {
       setMiSala(data.codigoSala);
@@ -122,18 +129,13 @@ function App() {
     }); 
 
     socket.on('nueva_pregunta', (data) => {
-      let preg = data.pregunta;
-
-      // Generar opciones dinámicas si es pregunta de Fuego Cruzado (Elección de jugadores)
-      if (preg.es_fuego_cruzado || preg.numero === 5 || preg.numero === 10) {
-        preg = {
-          ...preg,
-          es_fuego_cruzado: true,
-          opciones: jugadores
-            .filter(j => j.id !== socket.id)
-            .map(j => ({ id_opcion: j.id, texto: `${j.avatar} ${j.nombre}` }))
-        };
-      }
+      // El backend ya envía 'opciones' resueltas y correctas, tanto para
+      // preguntas normales como para Fuego Cruzado (en ese caso, la lista
+      // de jugadores de la sala con su id_opcion = socket.id real). El
+      // frontend ya NO reconstruye ni pisa las opciones por número de
+      // pregunta: eso era lo que causaba que se mostrara el texto de una
+      // pregunta pero con opciones de otra.
+      const preg = data.pregunta;
 
       setPreguntaActual(preg);
       setOpcionElegida(null);
@@ -189,7 +191,15 @@ function App() {
       socket.off('fin_juicio');
       socket.off('juego_terminado');
     };
-  }, [miId, jugadores]);
+  }, [miId]);
+
+  // Opciones visibles para el jugador actual: en Fuego Cruzado, el backend
+  // manda a TODOS los jugadores (incluido uno mismo) para poder validar
+  // cualquier id_opcion contra esa misma lista; acá simplemente se filtra
+  // la propia opción a la hora de mostrarla o de elegir una al azar.
+  const opcionesVisibles = preguntaActual?.opciones
+    ? preguntaActual.opciones.filter(o => !preguntaActual.es_fuego_cruzado || o.id_opcion !== miId)
+    : [];
 
   useEffect(() => {
     let timer;
@@ -199,9 +209,8 @@ function App() {
     } 
     else if (pantalla === 'PREGUNTA' && tiempoRestante === 0 && !opcionElegida) {
       reproducirSonido('tick', 'stop');
-      const opciones = preguntaActual?.opciones;
-      if (opciones && opciones.length > 0) {
-        const azar = opciones[Math.floor(Math.random() * opciones.length)].id_opcion;
+      if (opcionesVisibles.length > 0) {
+        const azar = opcionesVisibles[Math.floor(Math.random() * opcionesVisibles.length)].id_opcion;
         enviarRespuesta(azar);
       }
     }
@@ -473,7 +482,7 @@ function App() {
           )}
 
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
-            {preguntaActual.opciones?.map((opt, index) => (
+            {opcionesVisibles.map((opt, index) => (
               <button key={opt.id_opcion || index} style={estilos.botonOpcion(opcionElegida === opt.id_opcion, opcionElegida !== null, preguntaActual.es_fuego_cruzado)} onClick={() => !opcionElegida && enviarRespuesta(opt.id_opcion)} disabled={opcionElegida !== null}>
                 {!preguntaActual.es_fuego_cruzado && (
                    <strong style={{color: opcionElegida === opt.id_opcion ? '#00FFA3' : '#FF007A', marginRight: '10px'}}>{LETRAS_OPCIONES[index] || `${String.fromCharCode(65 + index)})`}</strong> 
