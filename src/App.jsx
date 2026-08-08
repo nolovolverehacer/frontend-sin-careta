@@ -11,6 +11,17 @@ const socket = io('https://sin-careta-backend.onrender.com');
 const ANIMALES = ['🦊','🐍','🐀','🦉','🐑','🦝','🦍','🐕','🐈','🐖','🐅','🦥','🦦','🦨','🦇','🦩','🦅','🦈','🐊','🦖','🦄','🐸','🐼','🐨'];
 const LETRAS_OPCIONES = ['A)', 'B)', 'C)', 'D)', 'E)', 'F)'];
 
+const NOMBRES_TEST = {
+  TEST_A: '💀 El Dictador (Control)',
+  TEST_B: '🧘‍♂️ Falso Zen (Positividad)',
+  TEST_C: '🔪 Buda con Puñal (Agresión)',
+  TEST_D: '🍻 Reglas de Barrio (Códigos)'
+};
+
+function generarToken() {
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+}
+
 function App() {
   const [pantalla, setPantalla] = useState('INICIO');
   const [cargando, setCargando] = useState(false);
@@ -21,12 +32,27 @@ function App() {
   });
   const [avatarElegido, setAvatarElegido] = useState('🦊'); 
 
+  // Token de sesión propio del dispositivo: se guarda en localStorage para
+  // poder reconectarse a la misma identidad si se recarga la página.
+  const [miToken] = useState(() => {
+    let t = localStorage.getItem('sinCareta_token');
+    if (!t) {
+      t = generarToken();
+      localStorage.setItem('sinCareta_token', t);
+    }
+    return t;
+  });
+
   const [jugadores, setJugadores] = useState([]);
   const [miSala, setMiSala] = useState('');
   const [miId, setMiId] = useState('');
   
   const [testSeleccionado, setTestSeleccionado] = useState('TEST_D'); 
   const [parteSeleccionada, setParteSeleccionada] = useState(1); 
+
+  // Qué test/parte se está jugando (o se jugó), para mostrarlo siempre en
+  // pantalla y también antes de "Volver a empezar".
+  const [infoPartida, setInfoPartida] = useState(null); // { idTest, parteInicial, extendida }
 
   const [preguntaActual, setPreguntaActual] = useState(null);
   const [tiempoRestante, setTiempoRestante] = useState(60);
@@ -48,7 +74,10 @@ function App() {
   const [testFinal, setTestFinal] = useState(null);
   const [acusacionUsada, setAcusacionUsada] = useState(false);
 
-  const [maxPreguntasRonda, setMaxPreguntasRonda] = useState(15);
+  // Se pone en true al tocar cualquier botón de avance en INTERMEDIO
+  // (Finalizar / Extender / Siguiente pregunta) para que un doble tap no
+  // dispare el mismo evento dos veces y salte una pregunta.
+  const [avanzando, setAvanzando] = useState(false);
 
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
@@ -57,6 +86,14 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Refs "espejo" de nombre/avatar: los usamos dentro del listener de
+  // sockets (que solo se resuscribe cuando cambia miId) para no quedarnos
+  // con un valor viejo de estos campos por el cierre (closure) del efecto.
+  const nombreRef = useRef(nombre);
+  useEffect(() => { nombreRef.current = nombre; }, [nombre]);
+  const avatarRef = useRef(avatarElegido);
+  useEffect(() => { avatarRef.current = avatarElegido; }, [avatarElegido]);
 
   const audiosRef = useRef(null);
 
@@ -97,13 +134,35 @@ function App() {
     }
   }, [pantalla]);
 
-  // NOTA: este efecto ya NO depende de 'jugadores'. Antes se resuscribía a
-  // TODOS los listeners de socket cada vez que cambiaba la lista de
-  // jugadores (cosa que pasa seguido: cada vez que alguien entra o sale de
-  // la sala), lo cual dejaba una ventana corta donde un evento entrante
-  // podía perderse durante el "socket.off" + "socket.on" de la resuscripción.
-  // Ahora la lista de jugadores para Fuego Cruzado la arma el backend, así
-  // que este efecto no necesita leer 'jugadores' en absoluto.
+  // Si había una sesión guardada (misma sala, mismo token), reintentamos
+  // unirnos automáticamente al cargar la página. Nota: esto reconecta la
+  // IDENTIDAD del jugador (nombre, puntos, avatar) correctamente, pero la
+  // pantalla local vuelve a 'LOBBY' hasta el próximo evento del servidor —
+  // no reproduce en qué pregunta exacta estaba si el juego ya arrancó.
+  useEffect(() => {
+    const guardado = localStorage.getItem('sinCareta_sesion');
+    if (!guardado) return;
+    try {
+      const sesion = JSON.parse(guardado);
+      if (sesion.codigoSala && sesion.nombre) {
+        setNombre(sesion.nombre);
+        setAvatarElegido(sesion.avatar || '🦊');
+        setCodigoSala(sesion.codigoSala);
+        setMiSala(sesion.codigoSala);
+        setCargando(true);
+        socket.emit('unirse_sala', {
+          codigoSala: sesion.codigoSala,
+          nombreUsuario: sesion.nombre,
+          avatar: sesion.avatar,
+          token: miToken
+        });
+      }
+    } catch (e) {
+      localStorage.removeItem('sinCareta_sesion');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     socket.on('sala_creada', (data) => {
       setMiSala(data.codigoSala);
@@ -111,38 +170,48 @@ function App() {
       setMiId(socket.id);
       setCargando(false); 
       setPantalla('LOBBY');
+      localStorage.setItem('sinCareta_sesion', JSON.stringify({
+        codigoSala: data.codigoSala,
+        nombre: nombreRef.current,
+        avatar: avatarRef.current
+      }));
     });
 
     socket.on('actualizar_jugadores', (data) => {
       setJugadores(data.jugadores);
       if (!miId) setMiId(socket.id);
+      setCargando(false);
+      // Si estábamos en INICIO (recién nos unimos, o recién nos
+      // reconectamos), avanzamos a LOBBY. Si ya estábamos más avanzados
+      // (este evento llegó porque OTRO jugador entró o se reconectó), no
+      // tocamos la pantalla en la que ya estábamos.
+      setPantalla(prev => prev === 'INICIO' ? 'LOBBY' : prev);
     });
 
     socket.on('error_conexion', (data) => { 
       alert(data.mensaje); 
       setCargando(false); 
+      if (data.mensaje === 'Sala no encontrada') {
+        localStorage.removeItem('sinCareta_sesion');
+      }
     });
 
-    socket.on('pantalla_reglas', () => { 
-      setMaxPreguntasRonda(15);
+    socket.on('pantalla_reglas', (data) => { 
+      setInfoPartida({ idTest: data?.testActivo?.id_test, parteInicial: data?.parte, extendida: false });
       setPantalla('REGLAS'); 
     }); 
 
     socket.on('nueva_pregunta', (data) => {
-      // El backend ya envía 'opciones' resueltas y correctas, tanto para
-      // preguntas normales como para Fuego Cruzado (en ese caso, la lista
-      // de jugadores de la sala con su id_opcion = socket.id real). El
-      // frontend ya NO reconstruye ni pisa las opciones por número de
-      // pregunta: eso era lo que causaba que se mostrara el texto de una
-      // pregunta pero con opciones de otra.
       const preg = data.pregunta;
 
       setPreguntaActual(preg);
+      setInfoPartida({ idTest: preg.idTest, parteInicial: preg.parteInicial, extendida: preg.extendida });
       setOpcionElegida(null);
       setPrediccionJugador('');
       setPrediccionOpcion('');
       setAcusacionUsada(false); 
       setTiempoRestante(60);
+      setAvanzando(false);
       setPantalla('PREGUNTA');
     });
 
@@ -177,6 +246,8 @@ function App() {
       reproducirSonido('tick', 'stop');
       setJugadores(data.jugadores);
       setTestFinal(data.testActivo);
+      setInfoPartida({ idTest: data.testActivo?.id_test, parteInicial: data.parteInicial, extendida: data.extendida });
+      setAvanzando(false);
       setPantalla('RESULTADOS');
     });
 
@@ -193,10 +264,6 @@ function App() {
     };
   }, [miId]);
 
-  // Opciones visibles para el jugador actual: en Fuego Cruzado, el backend
-  // manda a TODOS los jugadores (incluido uno mismo) para poder validar
-  // cualquier id_opcion contra esa misma lista; acá simplemente se filtra
-  // la propia opción a la hora de mostrarla o de elegir una al azar.
   const opcionesVisibles = preguntaActual?.opciones
     ? preguntaActual.opciones.filter(o => !preguntaActual.es_fuego_cruzado || o.id_opcion !== miId)
     : [];
@@ -257,16 +324,18 @@ function App() {
     if (!nombre.trim()) return alert('¡Ponete un nombre, careta!');
     setCargando(true);
     reproducirSonido('click');
-    socket.emit('crear_sala', { nombreUsuario: nombre, avatar: avatarElegido });
+    socket.emit('crear_sala', { nombreUsuario: nombre, avatar: avatarElegido, token: miToken });
   };
 
   const unirseSala = () => {
     if (!nombre.trim()) return alert('¡Ponete un nombre, careta!');
     if (!codigoSala.trim()) return alert('Ingresá el código de la sala');
+    const codigo = codigoSala.trim().toUpperCase();
     setCargando(true);
     reproducirSonido('click');
-    socket.emit('unirse_sala', { codigoSala: codigoSala.trim().toUpperCase(), nombreUsuario: nombre, avatar: avatarElegido });
-    setMiSala(codigoSala.trim().toUpperCase());
+    socket.emit('unirse_sala', { codigoSala: codigo, nombreUsuario: nombre, avatar: avatarElegido, token: miToken });
+    setMiSala(codigo);
+    localStorage.setItem('sinCareta_sesion', JSON.stringify({ codigoSala: codigo, nombre, avatar: avatarElegido }));
   };
 
   const prepararJuego = () => {
@@ -303,13 +372,23 @@ function App() {
   };
 
   const finalizarJuegoManualmente = () => {
+    if (avanzando) return;
+    setAvanzando(true);
     reproducirSonido('click');
     socket.emit('finalizar_juego', { codigoSala: miSala });
   };
 
   const extenderA30Preguntas = () => {
+    if (avanzando) return;
+    setAvanzando(true);
     reproducirSonido('click');
-    setMaxPreguntasRonda(30);
+    socket.emit('extender_ronda', { codigoSala: miSala });
+  };
+
+  const siguientePregunta = () => {
+    if (avanzando) return;
+    setAvanzando(true);
+    reproducirSonido('click');
     socket.emit('siguiente_pregunta', { codigoSala: miSala });
   };
 
@@ -335,6 +414,12 @@ function App() {
     }
   }
 
+  const nombrePartida = infoPartida?.idTest
+    ? `${NOMBRES_TEST[infoPartida.idTest] || infoPartida.idTest} · Parte ${infoPartida.parteInicial}${infoPartida.extendida ? ' + 2' : ''}`
+    : '';
+
+  const estiloOpcion = { background: '#1A1A2E', color: '#FFFFFF' };
+
   const estilos = {
     contenedor: { background: 'radial-gradient(circle at 50% 0%, #2A0845 0%, #0F041C 100%)', color: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '20px', boxSizing: 'border-box' },
     tarjetaGlass: { background: 'rgba(255, 255, 255, 0.03)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '24px', padding: '30px', boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.4)', width: '100%', maxWidth: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 10 },
@@ -347,11 +432,16 @@ function App() {
     botonMentira: (usado) => ({ padding: '12px', fontSize: '1rem', fontWeight: '800', background: usado ? 'rgba(255, 255, 255, 0.1)' : 'linear-gradient(45deg, #FF007A, #FF4B2B)', color: usado ? '#888' : '#FFF', border: 'none', borderRadius: '12px', boxShadow: usado ? 'none' : '0 4px 15px rgba(255, 0, 122, 0.3)', cursor: usado ? 'not-allowed' : 'pointer', marginTop: '15px', width: '100%' }),
     botonOpcion: (seleccionada, bloqueado, esFuegoCruzado) => ({ padding: '16px', fontSize: '1.1rem', fontWeight: '600', background: seleccionada ? 'rgba(0, 255, 163, 0.1)' : (esFuegoCruzado ? 'rgba(255, 0, 122, 0.1)' : 'rgba(255, 255, 255, 0.05)'), color: seleccionada ? '#00FFA3' : '#FFF', border: seleccionada ? '2px solid #00FFA3' : (esFuegoCruzado ? '1px solid rgba(255, 0, 122, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)'), borderRadius: '16px', boxShadow: seleccionada ? '0 0 15px rgba(0, 255, 163, 0.2)' : 'none', cursor: bloqueado ? 'not-allowed' : 'pointer', width: '100%', marginBottom: '12px', textAlign: 'left', opacity: (bloqueado && !seleccionada) ? 0.4 : 1 }),
     reloj: (tiempo) => ({ fontSize: '3rem', fontWeight: '900', color: tiempo <= 10 ? '#FF007A' : '#00FFA3', textShadow: tiempo <= 10 ? '0 0 20px rgba(255,0,122,0.6)' : '0 0 20px rgba(0,255,163,0.4)', marginBottom: '20px' }),
-    tarjetaRevelacion: { background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '20px', borderRadius: '16px', marginBottom: '15px', width: '100%', display: 'flex', flexDirection: 'column' }
+    tarjetaRevelacion: { background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '20px', borderRadius: '16px', marginBottom: '15px', width: '100%', display: 'flex', flexDirection: 'column' },
+    badgeJuego: { position: 'fixed', top: '10px', right: '10px', background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.15)', color: '#00FFA3', fontSize: '0.75rem', fontWeight: '700', padding: '6px 12px', borderRadius: '20px', zIndex: 30, letterSpacing: '0.5px', textAlign: 'right' }
   };
 
   return (
     <div style={estilos.contenedor}>
+      {infoPartida?.idTest && pantalla !== 'INICIO' && pantalla !== 'LOBBY' && (
+        <div style={estilos.badgeJuego}>🎮 {nombrePartida}</div>
+      )}
+
       {pantalla === 'RESULTADOS' && (
         <Confetti width={windowSize.width} height={windowSize.height} colors={['#00FFA3', '#FF007A', '#7A00FF', '#00B8FF', '#FFD700']} recycle={false} numberOfPieces={600} />
       )}
@@ -401,8 +491,8 @@ function App() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', marginBottom: '30px' }}>
             {jugadores.map((j, i) => (
-              <div key={i} className="tarjeta-jugador-animada" style={{background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s`}}>
-                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 30 ? '🔥' : ''}</span>
+              <div key={i} className="tarjeta-jugador-animada" style={{background: 'rgba(0,0,0,0.4)', borderLeft: j.id === miId ? '4px solid #00FFA3' : '4px solid transparent', padding: '12px 20px', borderRadius: '12px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', animationDelay: `${i * 0.1}s`, opacity: j.conectado === false ? 0.5 : 1}}>
+                <span style={{ fontSize: '1.1rem' }}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 30 ? '🔥' : ''} {j.conectado === false ? '🔌' : ''}</span>
                 <span style={{ color: '#00FFA3', fontSize: '1.1rem' }}>{j.puntos} pts</span>
               </div>
             ))}
@@ -411,10 +501,9 @@ function App() {
           {jugadores.find(j => j.id === miId)?.esAnfitrion ? (
             <div style={{ width: '100%' }}>
               <select style={estilos.input} value={testSeleccionado} onChange={(e) => setTestSeleccionado(e.target.value)}>
-                <option value="TEST_A">💀 El Dictador (Control)</option>
-                <option value="TEST_B">🧘‍♂️ Falso Zen (Positividad)</option>
-                <option value="TEST_C">🔪 Buda con Puñal (Agresión)</option>
-                <option value="TEST_D">🍻 Reglas de Barrio (Códigos)</option>
+                {Object.entries(NOMBRES_TEST).map(([id, label]) => (
+                  <option key={id} value={id} style={estiloOpcion}>{label}</option>
+                ))}
               </select>
               <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                 <button style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #00FFA3', background: parteSeleccionada === 1 ? '#00FFA3' : 'transparent', color: parteSeleccionada === 1 ? '#000' : '#FFF', fontWeight: 'bold', cursor: 'pointer' }} onClick={() => setParteSeleccionada(1)}>PARTE 1</button>
@@ -455,24 +544,24 @@ function App() {
           
           <div style={{ alignSelf: 'flex-start', marginBottom: '20px' }}>
             <span style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#00FFA3', padding: '6px 14px', fontWeight: '700', borderRadius: '20px', fontSize: '0.9rem', letterSpacing: '1px' }}>
-              Ronda {preguntaActual.numero} de {maxPreguntasRonda}
+              Ronda {preguntaActual.numero} de {preguntaActual.total}
             </span>
           </div>
           
           <h2 style={{ fontSize: '1.5rem', lineHeight: '1.4', marginBottom: '30px', fontWeight: '600', color: preguntaActual.es_fuego_cruzado ? '#FF007A' : '#FFF', whiteSpace: 'pre-line' }}>{preguntaActual.texto}</h2>
 
-          {!opcionElegida && jugadores.length > 1 && !preguntaActual.es_fuego_cruzado && (
+          {!opcionElegida && jugadores.length > 2 && !preguntaActual.es_fuego_cruzado && (
             <div style={{...estilos.tarjetaGlass, background: 'rgba(0, 255, 163, 0.05)', border: '1px solid rgba(0, 255, 163, 0.2)', padding: '20px', marginBottom: '25px'}}>
               <span style={{color: '#00FFA3', fontWeight: '700', fontSize: '0.9rem', marginBottom: '15px'}}>🕵️ VOTO TRAIDOR (Optativo: Acertá y restá 2 pts)</span>
               <select style={estilos.input} value={prediccionJugador} onChange={(e) => setPrediccionJugador(e.target.value)}>
-                <option value="">¿Quién va a mentir?</option>
-                {jugadores.filter(j => j.id !== miId).map(j => (<option key={j.id} value={j.id}>{j.avatar} {j.nombre}</option>))}
+                <option value="" style={estiloOpcion}>¿Quién va a mentir?</option>
+                {jugadores.filter(j => j.id !== miId).map(j => (<option key={j.id} value={j.id} style={estiloOpcion}>{j.avatar} {j.nombre}</option>))}
               </select>
               {prediccionJugador && (
                 <select style={{...estilos.input, marginBottom: 0}} value={prediccionOpcion} onChange={(e) => setPrediccionOpcion(e.target.value)}>
-                  <option value="">¿Qué va a responder?</option>
+                  <option value="" style={estiloOpcion}>¿Qué va a responder?</option>
                   {preguntaActual.opciones?.map((o, index) => (
-                    <option key={o.id_opcion || index} value={o.id_opcion}>
+                    <option key={o.id_opcion || index} value={o.id_opcion} style={estiloOpcion}>
                       Opción {LETRAS_OPCIONES[index] || String.fromCharCode(65 + index)}
                     </option>
                   ))}
@@ -564,15 +653,15 @@ function App() {
 
       {pantalla === 'INTERMEDIO' && (
         <div style={estilos.tarjetaGlass}>
-          <h2 style={{ color: '#00FFA3', marginBottom: '25px', fontWeight: '800' }}>Fin de la Pregunta {preguntaActual?.numero || 15}</h2>
+          <h2 style={{ color: '#00FFA3', marginBottom: '25px', fontWeight: '800' }}>Fin de la Pregunta {preguntaActual?.numero}</h2>
           <div style={{ width: '100%', marginBottom: '30px' }}>
             <h3 style={{ color: '#A09FB1', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '15px' }}>Tabla de Toxicidad:</h3>
             
             {[...jugadores]
               .sort((a, b) => b.puntos - a.puntos)
               .map((j, i) => (
-                <div key={j.id || i} style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 30 ? '🔥' : ''}</span>
+                <div key={j.id || i} style={{ background: 'rgba(0,0,0,0.3)', padding: '12px 15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', marginBottom: '8px', opacity: j.conectado === false ? 0.5 : 1 }}>
+                  <span style={{fontWeight: '600'}}>{j.avatar} {j.nombre} {j.pinocho ? '🤥' : ''} {j.puntos >= 30 ? '🔥' : ''} {j.conectado === false ? '🔌' : ''}</span>
                   <span style={{color: '#00FFA3', fontWeight: '800'}}>{j.puntos} pts</span>
                 </div>
               ))}
@@ -580,20 +669,20 @@ function App() {
 
           {jugadores.find(j => j.id === miId)?.esAnfitrion ? (
             <div style={{ width: '100%' }}>
-              {preguntaActual?.numero === 15 && maxPreguntasRonda === 15 ? (
+              {preguntaActual?.fin_de_bloque ? (
                 <>
                   <p style={{ color: '#FFD700', fontWeight: 'bold', marginBottom: '15px', textAlign: 'center' }}>
-                    ¡Completaron las 15 preguntas iniciales! ¿Qué desean hacer?
+                    ¡Completaron las {preguntaActual.total} preguntas iniciales! ¿Qué desean hacer?
                   </p>
-                  <button style={estilos.botonPrincipal} onClick={finalizarJuegoManualmente}>
+                  <button style={{...estilos.botonPrincipal, opacity: avanzando ? 0.6 : 1}} onClick={finalizarJuegoManualmente} disabled={avanzando}>
                     🏁 FINALIZAR Y VER RESULTADOS
                   </button>
-                  <button style={estilos.botonSecundario} onClick={extenderA30Preguntas}>
+                  <button style={{...estilos.botonSecundario, opacity: avanzando ? 0.6 : 1}} onClick={extenderA30Preguntas} disabled={avanzando}>
                     🚀 EXTENDER A 30 PREGUNTAS
                   </button>
                 </>
               ) : (
-                <button style={estilos.botonPrincipal} onClick={() => { reproducirSonido('click'); socket.emit('siguiente_pregunta', { codigoSala: miSala }); }}>
+                <button style={{...estilos.botonPrincipal, opacity: avanzando ? 0.6 : 1}} onClick={siguientePregunta} disabled={avanzando}>
                   SIGUIENTE PREGUNTA
                 </button>
               )}
@@ -672,7 +761,13 @@ function App() {
             ))}
           </div>
 
-          <button style={{ ...estilos.botonPrincipal, maxWidth: '300px' }} onClick={() => { reproducirSonido('click'); window.location.reload(); }}>
+          {infoPartida?.idTest && (
+            <p style={{ color: '#A09FB1', fontSize: '0.85rem', marginBottom: '10px', textAlign: 'center' }}>
+              Jugaste: {nombrePartida}
+            </p>
+          )}
+
+          <button style={{ ...estilos.botonPrincipal, maxWidth: '300px' }} onClick={() => { reproducirSonido('click'); localStorage.removeItem('sinCareta_sesion'); window.location.reload(); }}>
             VOLVER A EMPEZAR
           </button>
         </div>
